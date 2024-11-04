@@ -281,7 +281,7 @@ if [ $d_flag != 'false' ]
 then
 	mv feature-table.qza feature-table-predecontam.qza
 
-	Rscript /home/cwwalsh/Scripts/DAMG/decontam.R feature-table-predecontam.qza feature-table-decontam.biom $m_flag $d_flag
+	Rscript "$(dirname "$(realpath "$0")""/decontam.R feature-table-predecontam.qza feature-table-decontam.biom $m_flag $d_flag
 
 	qiime tools import \
 		--input-path feature-table-decontam.biom \

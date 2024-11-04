@@ -7,6 +7,9 @@ NAMES=$1
 INPUTDIR=$2
 OUTPUTDIR=$3
 
+MINLEN=1400
+MAXLEN=1700
+
 # ensure names file exits
 if [ ! -f ${NAMES} ]
 then
@@ -89,8 +92,8 @@ do
 	python /home/cwwalsh/Scripts/DAMG/ONT-16S/utils/filter_fastq.py \
 	   --input_file ${j} \
 	   --output_file ${OUTPUTDIR}/FILTERED_FASTQ/${i}fastq.gz \
-	   --min_length 1400 \
-	   --max_length 1700
+	   --min_length ${MINLEN} \
+	   --max_length ${MAXLEN}
 
 done < ${OUTPUTDIR}/.manifest.tsv 
 
