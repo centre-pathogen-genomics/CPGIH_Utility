@@ -3,7 +3,7 @@
 This repository contains utility scripts for random stuff we do in CPG-IH.  
 
 ### INSTALLATION AND SETUP
-First you need to clone this repository t oyour local machine/server. You can do this anywhere, but for the purposes for this documentation we will do it in a new directory called `Tools/` in your home directory (`~`) to make it easy.  
+First you need to clone this repository to your local machine/server. You can do this anywhere, but for the purposes of this documentation we will do it in a new directory called `Tools/` in your home directory (`~`) to make it easy.  
 
 ```bash
 mkdir ~/Tools/
@@ -11,13 +11,13 @@ cd ~/Tools/
 git clone https://github.com/centre-pathogen-genomics/CPGIH_Utility.git 
 ```
 
-If you are using the MDU servers is it easiest to just load my conda env - should set all the paths correctly.  
+If you are using the MDU servers is it easiest to just load my conda env - it should set all the paths correctly.  
 
 ```bash
 conda activate /home/cwwalsh/miniconda3/envs/cpgih_utility
 ```
 
-Alternatively you can make your own conda environment. Following these steps should give you on that does everything - you will need to install your own databases for `kraken2` and `emu` though.  
+Alternatively you can make your own conda environment. Following these steps should give you oe that does everything - you will need to install your own databases for `kraken2` and `emu` though.  
 
 ```bash
 conda create -n cpgih_utility -y
@@ -37,10 +37,10 @@ nohup sh script.sh input output > nohup_out &
 ```
 
 Adding `nohup` before the command will tell it to ignore any hangup signals, like when the connection to the server drops  
-`> nohup_out` will tell it to redirect all the stuff that would normally be printed to the screen into a file with that name  
+`> nohup_out` will redirect all the stuff that would normally be printed to the screen into a file with that name  
 the `&` at the end will tell it to run in the background so that you can do other things on the command line  
 
-If you want to run multiple jobs at the same time, make sure you have unique names for the `names` and `nohup_out` filesso that there is no chance of using the wrong file or overwriting the input/output mid-job. 
+If you want to run multiple jobs at the same time, make sure you have unique names for the `names` and `nohup_out` files sso that there is no chance of using the wrong file or overwriting the input/output mid-job. 
 
 ### ONT FASTQ BACKUP
 This is very specific to the CPG-IH data storage structure - it will take the data outputted by the minION(s), store the necessary files in our mediaflux backup, rename them if necessary, and generate a sharing link if requested.   
