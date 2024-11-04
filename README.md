@@ -95,4 +95,10 @@ bash ~/Tools/CPGIH_Utility/ont_genomesqc.sh names inputdirectory outputdirectory
 
 ### ONT ISOLATE GENOME DATA PROCESSING
 ### TIDY PUBLIC HTML DATA
+Another very specific one, this time to tidy up the duplicated data that we use to generate the sharing links - deleting data that was shared more than 30 days ago.  
+It takes one positional argument, the path to your `public_html/tmp` directory.  
 
+Example:
+```bash
+bash ~/Tools/CPGIH_Utility/tidy_public_html.sh ~/public_html/tmp/
+```
