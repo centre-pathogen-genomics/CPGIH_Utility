@@ -24,12 +24,14 @@ conda create -n cpgih_utility -y
 conda activate cpgih_utility
 conda install -c bioconda kraken2 shovill seqkit csvtk flye emu r-base
 R
-install.packages('tidyverse')
-# you will need to pick a CRAN mirror here, I usually just pick Ireland 
-
+install.packages('ggplot2')
+# you will need to pick a CRAN mirror here, I usually just pick one at random
+install.packages('dplyr')
+install.packages('BiocManager')
+BiocManager::install('decontam')
 ```
 
-### GENRAL TIPS
+### GENERAL TIPS
 Some of these scripts will take a while to run (I usually let these run overnight), and will fail if they loses connection to the server, so I always run them like this if I am using a system without a job manager like SLURM:  
 
 ```bash
@@ -88,7 +90,7 @@ Three positional arguments are required:
 
 Example:
 ```bash
-~/Tools/CPGIH_Utility/ont_genomesqc.sh names inputdirectory outputdirectory
+bash ~/Tools/CPGIH_Utility/ont_genomesqc.sh names inputdirectory outputdirectory
 ```
 
 ### ONT ISOLATE GENOME DATA PROCESSING
