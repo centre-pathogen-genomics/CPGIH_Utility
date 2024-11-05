@@ -2,7 +2,7 @@
 
 This repository contains utility scripts for random stuff we do in CPG-IH.  
 
-### INSTALLATION AND SETUP
+## INSTALLATION AND SETUP
 First you need to clone this repository to your local machine/server. You can do this to any directory, but for the purposes of this documentation we will do it in a new directory called `Tools/` in your home directory (`~`).  
 
 ```bash
@@ -31,7 +31,7 @@ install.packages('BiocManager')
 BiocManager::install('decontam')
 ```
 
-### GENERAL TIPS
+## GENERAL TIPS
 Some of these scripts will take a while to run, and will fail if they lose connection to the server, so I always run them like this:   
 
 ```bash
@@ -43,6 +43,8 @@ Using `> nohup_out` will redirect all the stuff that would normally be printed t
 The `&` at the end will tell it to run in the background so that you can do other things on the command line  
 
 If you want to run multiple jobs at the same time, make sure you have unique names for the `names` and `nohup_out` files so that there is no chance of using the wrong file or overwriting the input/output mid-job. 
+
+## DATA PROCESSING
 
 ### ONT FASTQ BACKUP
 This is very specific to the CPG-IH data storage structure - it will take the data outputted by the onION, store the necessary files in our mediaflux backup, rename them if necessary, and generate a sharing link if requested.   
@@ -64,7 +66,18 @@ Example:
 sh ~/Tools/CPGIH_Utility/ont_combine_fastq.sh inputdirectory outputdirectory renaming.tsv file
 ```
 
-### ONT 16S DATA PROCESSING
+### TIDY PUBLIC HTML DATA
+Another one specific to the CPG-IH data storage and sharing system, this time to tidy up the duplicated data that we use to generate the sharing links - deleting data that was shared more than 30 days ago.  
+It takes one positional argument, the path to your `public_html/tmp` directory.  
+
+Example:
+```bash
+bash ~/Tools/CPGIH_Utility/tidy_public_html.sh ~/public_html/tmp/
+```
+
+## DATA QUALITY CONTROL AND PRELIMINARY ANALYSIS
+
+### ONT 16S AMPLICONS 
 The `ont_qcemu.sh` script will take demultiplexed FASTQ reads and perform length filtering and taxonomic profiling.
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the file before `.fastq.gz`), one per line
@@ -78,7 +91,6 @@ Example:
 sh ~/Tools/CPGIH_Utility/ont_qcemu.sh names inputdirectory outputdirectory
 ```
 
-### ONT 16S DATA PLOTTING
 The `barplots.R` script will make stacked barplots showing the 25 most abundant species identfied by Emu in the `ONT 16S DATA PROCESSING` section above.  
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the file before `.fastq.gz`), one per line
@@ -94,24 +106,32 @@ Rscript ~/Tools/CPGIH_Utility/barplots.R names emu-combined-abundance-species.ts
 
 The first option will run the script at default, the second option will modify the width and height (in inches) of the output PDF he defaults are 12 and 8 respecively. If you want to modify the height or width, you will need to specify both - even if the other is the same as a default value.  
 
-### ILLUMINA ISOLATE GENOME DATA PROCESSING
+### ILLUMINA ISOLATE GENOMES
 The `illumina_genomesqc.sh` script will take the input FASTQ reads, assign taxonomy to the reads using Kraken2, generate a draft assembly with shovill, and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the sample), one per line
-2. The path to the directory containing the `fastqgz` reads
+2. The path to the directory containing the `fastq.gz` reads
+3. The output directory you want to create 
+
+Example:
+```bash
+bash ~/Tools/CPGIH_Utility/illumina_genomesqc.sh names inputdirectory outputdirectory
+```
+
+### ONT ISOLATE GENOMES
+The `ont_genomesqc.sh` script works similar to the Illumina one. It will take the input FASTQ reads, assign taxonomy to the reads using Kraken2, generate a draft assembly with flye, and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
+Three positional arguments are required:
+1. A file listing the basenames you want to include (the name of the sample), one per line
+2. The path to the directory containing the `fastq.gz` reads
 3. The output directory you want to create 
 
 Example:
 ```bash
 bash ~/Tools/CPGIH_Utility/ont_genomesqc.sh names inputdirectory outputdirectory
 ```
+:construction: TO DO LIST :construction:
+### ILLUMINA METAGENOMES
 
-### ONT ISOLATE GENOME DATA PROCESSING
-### TIDY PUBLIC HTML DATA
-Another very specific one, this time to tidy up the duplicated data that we use to generate the sharing links - deleting data that was shared more than 30 days ago.  
-It takes one positional argument, the path to your `public_html/tmp` directory.  
+### ONT METAGENOMES
 
-Example:
-```bash
-bash ~/Tools/CPGIH_Utility/tidy_public_html.sh ~/public_html/tmp/
-```
+### EMP V4 AMPLICONS
