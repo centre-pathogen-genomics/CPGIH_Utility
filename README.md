@@ -3,7 +3,7 @@
 This repository contains utility scripts for random stuff we do in CPG-IH.  
 
 ### INSTALLATION AND SETUP
-First you need to clone this repository to your local machine/server. You can do this anywhere, but for the purposes of this documentation we will do it in a new directory called `Tools/` in your home directory (`~`) to make it easy.  
+First you need to clone this repository to your local machine/server. You can do this to any directory, but for the purposes of this documentation we will do it in a new directory called `Tools/` in your home directory (`~`).  
 
 ```bash
 mkdir ~/Tools/
@@ -17,7 +17,7 @@ If you are using the MDU servers is it easiest to just load my conda env - it sh
 conda activate /home/cwwalsh/miniconda3/envs/cpgih_utility
 ```
 
-Alternatively you can make your own conda environment. Following these steps should give you oe that does everything - you will need to install your own databases for `kraken2` and `emu` though.  
+Alternatively you can make your own conda environment. Following these steps should give you one that does everything - you will need to install your own databases for `kraken2` and `emu` or modify the scripts to use existing ones.  
 
 ```bash
 conda create -n cpgih_utility -y
@@ -32,24 +32,37 @@ BiocManager::install('decontam')
 ```
 
 ### GENERAL TIPS
-Some of these scripts will take a while to run (I usually let these run overnight), and will fail if they loses connection to the server, so I always run them like this if I am using a system without a job manager like SLURM:  
+Some of these scripts will take a while to run, and will fail if they lose connection to the server, so I always run them like this:   
 
 ```bash
 nohup sh script.sh input output > nohup_out &
 ```
 
 Adding `nohup` before the command will tell it to ignore any hangup signals, like when the connection to the server drops  
-`> nohup_out` will redirect all the stuff that would normally be printed to the screen into a file with that name  
-the `&` at the end will tell it to run in the background so that you can do other things on the command line  
+Using `> nohup_out` will redirect all the stuff that would normally be printed to the screen into a file with that name  
+The `&` at the end will tell it to run in the background so that you can do other things on the command line  
 
-If you want to run multiple jobs at the same time, make sure you have unique names for the `names` and `nohup_out` files sso that there is no chance of using the wrong file or overwriting the input/output mid-job. 
+If you want to run multiple jobs at the same time, make sure you have unique names for the `names` and `nohup_out` files so that there is no chance of using the wrong file or overwriting the input/output mid-job. 
 
 ### ONT FASTQ BACKUP
-This is very specific to the CPG-IH data storage structure - it will take the data outputted by the minION(s), store the necessary files in our mediaflux backup, rename them if necessary, and generate a sharing link if requested.   
+This is very specific to the CPG-IH data storage structure - it will take the data outputted by the onION, store the necessary files in our mediaflux backup, rename them if necessary, and generate a sharing link if requested.   
 
 ### ONT FASTQ MERGE AND RENAME
+The `ont_combine_fastq.sh` script that will take the FASTQ files outputted by an ONT sequencer and do some processing steps that are sometimes necessary. The default data structure for FASTQ files outputted by ONT machines is a directory (eg. `fastq_pass`) containing a subdirectory for each sample named by the barcode detected (eg. `fastq_pass/barcode01/`). These subdirectories can contain a single `fastq.gz` file or multiple files.  
+This script will detect if there are multiple files per sample and combine them to a single file per sample, renaming that file based on information provided.  
+Four positional arguments are required:
+1. The input directory containing the sample subdirectories
+2. The output directory you want to create 
+3. A two column TSV file listing, for each sample, the barcode name (eg. `barcode01`) and the new sample name to use (eg. `sampleA`). One sample per line. 
+4. The output format desired - this can take one of two values:  
+    * `file` - the output directory will contain a single `fastq.gz` file for each sample
+    * `subdir` - the output directory will contain a subdirectory for each sample, each containing a single `fastq.gz` file
+    * if unspecified, or an invalid foramt is specified, it will default to `file`
 
-
+Example:
+```bash
+sh ~/Tools/CPGIH_Utility/ont_combine_fastq.sh inputdirectory outputdirectory renaming.tsv file
+```
 
 ### ONT 16S DATA PROCESSING
 The `ont_qcemu.sh` script will take demultiplexed FASTQ reads and perform length filtering and taxonomic profiling.
@@ -62,7 +75,7 @@ If you want to change the length filtering cutoffs you can open the script in yo
 
 Example:
 ```bash
-sh ~/Tools/CPGIH_Utility/ont_qcemu.sh names inputdirectory outputdirectory > nohup_out &
+sh ~/Tools/CPGIH_Utility/ont_qcemu.sh names inputdirectory outputdirectory
 ```
 
 ### ONT 16S DATA PLOTTING
