@@ -9,10 +9,10 @@ This repository contains utility scripts for random stuff we do in CPG-IH.
     - [ONT FASTQ BACKUP](#ont-fastq-backup)
     - [ONT FASTQ MERGE AND RENAME](#ont-fastq-merge-and-rename)
     - [TIDY PUBLIC HTML](#tidy-public-html)
-- [DATA QUALITY CONTROL AND PRELIMINARY ANALYSIS](#section-one)
-    - [ONT 16S AMPLICONS](#subsection-a)
-    - [ILLUMINA ISOLATE GENOMES](#subsection-a)
-    - [ONT ISOLATE GENOMES](#subsection-a)
+- [DATA QUALITY CONTROL AND PRELIMINARY ANALYSIS](#data-quality-control-and-preliminary-analysis)
+    - [ONT 16S AMPLICONS](#ont-16S-amplicons)
+    - [ILLUMINA ISOLATE GENOMES](#illumina-isolate-genomes)
+    - [ONT ISOLATE GENOMES](#ont-isolate-genomes)
 
 ## INSTALLATION AND SETUP
 First you need to clone this repository to your local machine/server. You can do this to any directory, but for the purposes of this documentation we will do it in a new directory called `Tools/` in your home directory (`~`).  
