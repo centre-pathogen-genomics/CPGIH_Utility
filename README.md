@@ -34,7 +34,7 @@ Alternatively you can make your own conda environment. Following these steps sho
 conda create -n cpgih_utility -y
 conda activate cpgih_utility
 conda install -c bioconda kraken2 shovill seqkit csvtk flye emu r-base
-R
+R # open an interactive session of R
 install.packages('ggplot2')
 # you will need to pick a CRAN mirror here, I usually just pick one at random
 install.packages('dplyr')
@@ -61,8 +61,9 @@ If you want to run multiple jobs at the same time, make sure you have unique nam
 This is very specific to the CPG-IH data storage structure - it will take the data outputted by the onION, store the necessary files in our mediaflux backup, rename them if necessary, and generate a sharing link if requested.   
 
 ### ONT FASTQ MERGE AND RENAME
-The `ont_combine_fastq.sh` script that will take the FASTQ files outputted by an ONT sequencer and do some processing steps that are sometimes necessary. The default data structure for FASTQ files outputted by ONT machines is a directory (eg. `fastq_pass`) containing a subdirectory for each sample named by the barcode detected (eg. `fastq_pass/barcode01/`). These subdirectories can contain a single `fastq.gz` file or multiple files.  
+The `ont_combine_fastq.sh` script will run some processing steps on the FASTQ files outputted by an ONT sequencer. The default data structure for FASTQ files outputted by ONT machines is a directory (eg. `fastq_pass`) containing a subdirectory for each sample named by the barcode detected (eg. `fastq_pass/barcode01/`). These subdirectories can contain a single `fastq.gz` file or multiple files.  
 This script will detect if there are multiple files per sample and combine them to a single file per sample, renaming that file based on information provided.  
+
 Four positional arguments are required:
 1. The input directory containing the sample subdirectories
 2. The output directory you want to create 
@@ -89,7 +90,8 @@ bash ~/Tools/CPGIH_Utility/tidy_public_html.sh ~/public_html/tmp/
 ## DATA QUALITY CONTROL AND PRELIMINARY ANALYSIS
 
 ### ONT 16S AMPLICONS 
-The `ont_qcemu.sh` script will take demultiplexed FASTQ reads and perform length filtering and taxonomic profiling.
+The `ont_qcemu.sh` script will take demultiplexed FASTQ reads and perform length filtering and taxonomic profiling.  
+
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the file before `.fastq.gz`), one per line
 2. The directory where those FASTQ files are stored
@@ -103,6 +105,7 @@ sh ~/Tools/CPGIH_Utility/ont_qcemu.sh names inputdirectory outputdirectory
 ```
 
 The `barplots.R` script will make stacked barplots showing the 25 most abundant species identfied by Emu in the `ONT 16S DATA PROCESSING` section above.  
+
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the file before `.fastq.gz`), one per line
 2. The path to the Emu output generated in the previous step is stored (will likely be in `outputdirectory/EmuResults/`)
@@ -119,6 +122,7 @@ The first option will run the script at default, the second option will modify t
 
 ### ILLUMINA ISOLATE GENOMES
 The `illumina_genomesqc.sh` script will take the input FASTQ reads, assign taxonomy to the reads using Kraken2, generate a draft assembly with shovill, and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
+
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the sample), one per line
 2. The path to the directory containing the `fastq.gz` reads
@@ -131,6 +135,7 @@ bash ~/Tools/CPGIH_Utility/illumina_genomesqc.sh names inputdirectory outputdire
 
 ### ONT ISOLATE GENOMES
 The `ont_genomesqc.sh` script works similar to the Illumina one. It will take the input FASTQ reads, assign taxonomy to the reads using Kraken2, generate a draft assembly with flye, and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
+
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the sample), one per line
 2. The path to the directory containing the `fastq.gz` reads
