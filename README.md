@@ -129,7 +129,7 @@ Example:
 ```bash
 bash ~/Tools/CPGIH_Utility/ont_genomesqc.sh names inputdirectory outputdirectory
 ```
-:construction: TO DO LIST :construction:
+:construction: :construction: :construction: :construction: :construction:
 ### ILLUMINA METAGENOMES
 
 ### ONT METAGENOMES
