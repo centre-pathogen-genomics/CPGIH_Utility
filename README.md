@@ -2,6 +2,18 @@
 
 This repository contains utility scripts for random stuff we do in CPG-IH.  
 
+## SHORTCUTS
+- [INSTALLATION AND SETUP](#installation-and-setup)
+- [GENERAL TIPS](#general-tips)
+- [DATA PROCESSING](#data-processing)
+    - [ONT FASTQ BACKUP](#ont-fastq-backup)
+    - [ONT FASTQ MERGE AND RENAME](#ont-fastq-merge-and-rename)
+    - [TIDY PUBLIC HTML](#tidy-public-html)
+- [DATA QUALITY CONTROL AND PRELIMINARY ANALYSIS](#section-one)
+    - [ONT 16S AMPLICONS](#subsection-a)
+    - [ILLUMINA ISOLATE GENOMES](#subsection-a)
+    - [ONT ISOLATE GENOMES](#subsection-a)
+
 ## INSTALLATION AND SETUP
 First you need to clone this repository to your local machine/server. You can do this to any directory, but for the purposes of this documentation we will do it in a new directory called `Tools/` in your home directory (`~`).  
 
@@ -66,7 +78,7 @@ Example:
 sh ~/Tools/CPGIH_Utility/ont_combine_fastq.sh inputdirectory outputdirectory renaming.tsv file
 ```
 
-### TIDY PUBLIC HTML DATA
+### TIDY PUBLIC HTML
 Another one specific to the CPG-IH data storage and sharing system, this time to tidy up the duplicated data that we use to generate the sharing links - deleting data that was shared more than 30 days ago.  
 It takes one positional argument, the path to your `public_html/tmp` directory.  
 
