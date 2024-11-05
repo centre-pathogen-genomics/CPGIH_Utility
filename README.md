@@ -2,7 +2,6 @@
 
 This repository contains utility scripts for random stuff we do in CPG-IH.  
 
-## SHORTCUTS
 - [INSTALLATION AND SETUP](#installation-and-setup)
 - [GENERAL TIPS](#general-tips)
 - [DATA PROCESSING](#data-processing)
