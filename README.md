@@ -28,7 +28,7 @@ If you are using the MDU servers is it easiest to just load my conda env - it sh
 conda activate /home/cwwalsh/miniconda3/envs/cpgih_utility
 ```
 
-Alternatively you can make your own conda environment. Following these steps should give you one that does everything - you will need to install your own databases for `kraken2` and `emu` or modify the scripts to use existing ones.  
+Alternatively you can make your own conda environment. Following these steps should give you one that does everything - you will need to install your own databases for [kraken2](https://benlangmead.github.io/aws-indexes/k2) and [emu](https://github.com/treangenlab/emu) or modify the scripts to use existing ones.  
 
 ```bash
 conda create -n cpgih_utility -y
@@ -43,7 +43,8 @@ BiocManager::install('decontam')
 ```
 
 ## GENERAL TIPS
-Some of these scripts will take a while to run, and will fail if they lose connection to the server, so I always run them like this:   
+Some of the scripts in this repository will take a while to run - if you are running these on a remote server without a job scheduler (eg. SLURM) then they will fail if you lose connection to the server.  
+You can avoid that by using somethink like `tmux` or `screen`, but I always run them like this:   
 
 ```bash
 nohup sh script.sh input output > nohup_out &
@@ -90,7 +91,7 @@ bash ~/Tools/CPGIH_Utility/tidy_public_html.sh ~/public_html/tmp/
 ## DATA QUALITY CONTROL AND PRELIMINARY ANALYSIS
 
 ### ONT 16S AMPLICONS 
-The `ont_qcemu.sh` script will take demultiplexed FASTQ reads and perform length filtering and taxonomic profiling.  
+The `ont_qcemu.sh` script will take demultiplexed FASTQ reads and perform length filtering and [taxonomic profiling](https://github.com/treangenlab/emu).  
 
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the file before `.fastq.gz`), one per line
@@ -104,7 +105,7 @@ Example:
 sh ~/Tools/CPGIH_Utility/ont_qcemu.sh names inputdirectory outputdirectory
 ```
 
-The `barplots.R` script will make stacked barplots showing the 25 most abundant species identfied by Emu in the `ONT 16S DATA PROCESSING` section above.  
+The `barplots.R` script will make stacked barplots showing the 25 most abundant species identfied in the `ONT 16S DATA PROCESSING` section above.  
 
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the file before `.fastq.gz`), one per line
@@ -118,10 +119,10 @@ Rscript ~/Tools/CPGIH_Utility/barplots.R names emu-combined-abundance-species.ts
 Rscript ~/Tools/CPGIH_Utility/barplots.R names emu-combined-abundance-species.tsv barplot.pdf 24 8
 ```
 
-The first option will run the script at default, the second option will modify the width and height (in inches) of the output PDF he defaults are 12 and 8 respecively. If you want to modify the height or width, you will need to specify both - even if the other is the same as a default value.  
+The first option will run the script as default, the second option will modify the width and height (in inches) of the output PDF (the defaults are 12 and 8 respecively so this will double the width, useful if you have a lot of samples). If you want to modify the height or width, you will need to specify both - even if the other is the same as a default value.  
 
 ### ILLUMINA ISOLATE GENOMES
-The `illumina_genomesqc.sh` script will take the input FASTQ reads, assign taxonomy to the reads using Kraken2, generate a draft assembly with shovill, and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
+The `illumina_genomesqc.sh` script will take the input FASTQ reads, assign taxonomy to the reads using [Kraken2](https://github.com/DerrickWood/kraken2), generate a draft assembly with [shovill](https://github.com/tseemann/shovill), and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
 
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the sample), one per line
@@ -134,7 +135,7 @@ bash ~/Tools/CPGIH_Utility/illumina_genomesqc.sh names inputdirectory outputdire
 ```
 
 ### ONT ISOLATE GENOMES
-The `ont_genomesqc.sh` script works similar to the Illumina one. It will take the input FASTQ reads, assign taxonomy to the reads using Kraken2, generate a draft assembly with flye, and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
+The `ont_genomesqc.sh` script works similar to the Illumina one. It will take the input FASTQ reads, assign taxonomy to the reads using [Kraken2](https://github.com/DerrickWood/kraken2), generate a draft assembly with [flye](https://github.com/mikolmogorov/Flye), and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
 
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the sample), one per line
