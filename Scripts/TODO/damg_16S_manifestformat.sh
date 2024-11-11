@@ -281,7 +281,7 @@ if [ $d_flag != 'false' ]
 then
 	mv feature-table.qza feature-table-predecontam.qza
 
-	Rscript "$(dirname "$(realpath "$0")""/decontam.R feature-table-predecontam.qza feature-table-decontam.biom $m_flag $d_flag
+	Rscript "$(dirname "$(realpath "$0")"/decontam.R feature-table-predecontam.qza feature-table-decontam.biom $m_flag $d_flag
 
 	qiime tools import \
 		--input-path feature-table-decontam.biom \
@@ -384,9 +384,10 @@ then
     then
 		mv deblur.log deblur-stats.qza $o_flag
         mv demux-filtered.qza demux-filterstats.qza demux-filterstats.qzv demux.qza demux.qzv $o_flag
-        mv feature-table.qza feature-table.qzv rep-seqs.qza $o_flag
-        mv rep-seqs.qzv insertion-tree.qza insertion-placements.qza taxonomy.qza taxonomy.qzv $o_flag
-        mv alpha-rarefaction-*.qzv taxa-bar-plots.qzv $o_flag
+        mv feature-table.qza feature-table.qzv feature-table.biom feature-table_json.biom feature-table-predecontam.qza $o_flag
+		mv rep-seqs.qza rep-seqs.qzv $o_flag
+        mv insertion-tree.qza insertion-placements.qza taxonomy.qza taxonomy.qzv taxonomy.tsv tree.nwk $o_flag
+        mv taxa-bar-plots.qzv $o_flag
 
 		# MOVE DECONTAM FILES TO OUTPUT DIRECTORY IF SPECIFIED
 		if [ $d_flag != 'false' ]
