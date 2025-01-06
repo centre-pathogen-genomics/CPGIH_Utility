@@ -36,7 +36,7 @@ then
     else
 
     echo 'Creating output directory'${OUTPUTDIR}
-    mkdir -p${OUTPUTDIR}/
+    mkdir -p ${OUTPUTDIR}/
 
 fi
 
