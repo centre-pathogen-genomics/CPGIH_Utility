@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# USAGE: /home/cwwalsh/Scripts/DAMG/emu.sh names inputdirectory outputdirectory
+# USAGE: ont_qcemu.sh names inputdirectory outputdirectory
 
 set -e
 NAMES=$1

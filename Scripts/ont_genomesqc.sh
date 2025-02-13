@@ -118,14 +118,7 @@ done < ${OUTPUTDIR}/temp_manifest.tsv
     -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
         cut -f 1,4,5,13 > ${OUTPUTDIR}/assembly_stats.tsv
 
-grep 'Mean coverage' TEST/FLYE/*/flye.log | \
+grep 'Mean coverage' ${OUTPUTDIR}/FLYE/*/flye.log | \
     sed 's,.*FLYE/,, ; s,/flye.log:,, ; s,Mean coverage:\t,,' > ${OUTPUTDIR}/coverage_stats.tsv
-
-while read i j
-do
-    
-    rm -rf ${OUTPUTDIR}/FLYE/${i}/
-
-done < ${OUTPUTDIR}/temp_manifest.tsv
 
 rm -f ${OUTPUTDIR}/temp_manifest.tsv
