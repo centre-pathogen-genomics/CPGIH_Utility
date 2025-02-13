@@ -76,7 +76,7 @@ Four positional arguments are required:
 
 Example:
 ```bash
-sh ~/Tools/CPGIH_Utility/ont_combine_fastq.sh inputdirectory outputdirectory renaming.tsv file
+sh ~/Tools/CPGIH_Utility/Scripts/ont_combine_fastq.sh inputdirectory outputdirectory renaming.tsv file
 ```
 
 ### TIDY PUBLIC HTML
@@ -85,7 +85,7 @@ It takes one positional argument, the path to your `public_html/tmp` directory.
 
 Example:
 ```bash
-bash ~/Tools/CPGIH_Utility/tidy_public_html.sh ~/public_html/tmp/
+bash ~/Tools/CPGIH_Utility/Scripts/tidy_public_html.sh ~/public_html/tmp/
 ```
 
 ## DATA QUALITY CONTROL AND PRELIMINARY ANALYSIS
@@ -102,7 +102,7 @@ If you want to change the length filtering cutoffs you can open the script in yo
 
 Example:
 ```bash
-sh ~/Tools/CPGIH_Utility/ont_qcemu.sh names inputdirectory outputdirectory
+sh ~/Tools/CPGIH_Utility/Scripts/ont_qcemu.sh names inputdirectory outputdirectory
 ```
 
 The `barplots.R` script will make stacked barplots showing the 25 most abundant species identfied in the `ONT 16S DATA PROCESSING` section above.  
@@ -114,9 +114,9 @@ Three positional arguments are required:
 
 Examples:
 ```bash
-Rscript ~/Tools/CPGIH_Utility/barplots.R names emu-combined-abundance-species.tsv barplot.pdf
+Rscript ~/Tools/CPGIH_Utility/Scripts/barplots.R names emu-combined-abundance-species.tsv barplot.pdf
 
-Rscript ~/Tools/CPGIH_Utility/barplots.R names emu-combined-abundance-species.tsv barplot.pdf 24 8
+Rscript ~/Tools/CPGIH_Utility/Scripts/barplots.R names emu-combined-abundance-species.tsv barplot.pdf 24 8
 ```
 
 The first option will run the script as default, the second option will modify the width and height (in inches) of the output PDF (the defaults are 12 and 8 respecively so this will double the width, useful if you have a lot of samples). If you want to modify the height or width, you will need to specify both - even if the other is the same as a default value.  
@@ -131,7 +131,7 @@ Three positional arguments are required:
 
 Example:
 ```bash
-bash ~/Tools/CPGIH_Utility/illumina_genomesqc.sh names inputdirectory outputdirectory
+bash ~/Tools/CPGIH_Utility/Scripts/illumina_genomesqc.sh names inputdirectory outputdirectory
 ```
 
 ### ONT ISOLATE GENOMES
@@ -144,7 +144,7 @@ Three positional arguments are required:
 
 Example:
 ```bash
-bash ~/Tools/CPGIH_Utility/ont_genomesqc.sh names inputdirectory outputdirectory
+bash ~/Tools/CPGIH_Utility/Scripts/ont_genomesqc.sh names inputdirectory outputdirectory
 ```
 :construction: :construction: :construction: :construction: :construction:
 ### ILLUMINA METAGENOMES
