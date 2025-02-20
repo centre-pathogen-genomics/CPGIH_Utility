@@ -120,23 +120,23 @@ do
             sort -t$'\t' -k2,2nr | \
                 head -n 10 > ${OUTPUTDIR}/KRAKEN/${i}_report_top10species.tsv
 
-    echo 'Starting Flye assembly of sample' ${i}
-    shovill \
-        --R1 ${j} \
-        --R2 ${k} \
-        --outdir ${OUTPUTDIR}/SHOVILL/${i}/ \
-        --minlen 1000 \
-        --cpus 20
+    echo 'Starting Spades assembly of sample' ${i}
+    spades.py \
+        --isolate \
+        -1 ${j} \
+        -2 ${k} \
+        -o ${OUTPUTDIR}/SPADES/${i}/ \
+        -t 20
 
-    mv ${OUTPUTDIR}/SHOVILL/${i}/contigs.fa ${OUTPUTDIR}/SHOVILL/${i}_contigs.fa
-    rm -rf ${OUTPUTDIR}/SHOVILL/${i}/
+    mv ${OUTPUTDIR}/SPADES/${i}/contigs.fa ${OUTPUTDIR}/SPADES/${i}_contigs.fa
+    rm -rf ${OUTPUTDIR}/SPADES/${i}/
 
 done < ${OUTPUTDIR}/.temp_manifest
 
 rm -f ${OUTPUTDIR}/.temp_manifest
 
 seqkit stats \
-    -abT ${OUTPUTDIR}/SHOVILL/*_contigs.fa | \
+    -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | \
         cut -f 1,4,5,13 | \
             csvtk pretty -t > ${OUTPUTDIR}/assembly_stats.tsv
 
