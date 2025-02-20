@@ -129,7 +129,6 @@ do
         -t 20
 
     mv ${OUTPUTDIR}/SPADES/${i}/contigs.fasta ${OUTPUTDIR}/SPADES/${i}_contigs.fa
-    rm -rf ${OUTPUTDIR}/SPADES/${i}/
 
 done < ${OUTPUTDIR}/.temp_manifest
 
