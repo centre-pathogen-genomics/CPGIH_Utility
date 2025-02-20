@@ -94,7 +94,7 @@ fi
 echo 'All specified inputs look good, starting pipeline'
 
 mkdir -p ${OUTPUTDIR}/KRAKEN/
-mkdir -p ${OUTPUTDIR}/SHOVILL/
+mkdir -p ${OUTPUTDIR}/SPADES/
 
 while read i j k
 do
