@@ -91,7 +91,7 @@ do
     echo 'Starting read filtering of sample' ${i}
 	python /home/cwwalsh/Scripts/DAMG/ONT-16S/utils/filter_fastq.py \
 	   --input_file ${j} \
-	   --output_file ${OUTPUTDIR}/FILTERED_FASTQ/${i}fastq.gz \
+	   --output_file ${OUTPUTDIR}/FILTERED_FASTQ/${i}.fastq.gz \
 	   --min_length ${MINLEN} \
 	   --max_length ${MAXLEN}
 
