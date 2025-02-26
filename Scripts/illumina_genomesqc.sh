@@ -162,6 +162,12 @@ rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_p
 
 seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | cut -f 1,4,5,13 | sed 's,_contigs.fa,,' > ${OUTPUTDIR}/assembly_stats.tsv
 
+sed -i '1i file\tspecies1\tspecies2\tspecies3' ${OUTPUTDIR}/KRAKEN/top3species.tsv
+
+sed -i 's,num_seqs,num_reads, ; s,num_seqs,num_contigs, s,sum_len,sum_len_contigs, ; s,N50,N50_contigs,' 
+
 paste ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
-    ${OUTPUTDIR}/KRAKEN/top3species.tsv | cut -f 1,2,4,5,6,8,9,10 > ${OUTPUTDIR}/summary.tsv
+    ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
+    cut -f 1,2,4,5,6,8,9,10 | \
+    sed 's,num_seqs,num_reads, ; s,num_seqs,num_contigs, s,sum_len,sum_len_contigs, ; s,N50,N50_contigs,' > ${OUTPUTDIR}/summary.tsv

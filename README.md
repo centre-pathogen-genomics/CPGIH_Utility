@@ -31,20 +31,28 @@ conda activate /home/cwwalsh/miniconda3/envs/cpgih_utility
 Alternatively you can make your own conda environment. Following these steps should give you one that does everything - you will need to install your own databases for [kraken2](https://benlangmead.github.io/aws-indexes/k2) and [emu](https://github.com/treangenlab/emu) or modify the scripts to use existing ones.  
 
 ```bash
-conda create -n cpgih_utility -y
+# create a conda environment into which you will install the software
+onda create -n cpgih_utility -y
+# activate the conda environment
 conda activate cpgih_utility
+# install the required software 
 conda install -c bioconda kraken2 shovill seqkit csvtk flye emu r-base
-R # open an interactive session of R
+# open an interactive session of R
+R
+# install required R packages that are annoying to get via conda
 install.packages('ggplot2')
 # you will need to pick a CRAN mirror here, I usually just pick one at random
 install.packages('dplyr')
 install.packages('BiocManager')
 BiocManager::install('decontam')
+# quit R session
+quit()
+# you should now be back on the linux/mac command line
 ```
 
 ## GENERAL TIPS
 Some of the scripts in this repository will take a while to run - if you are running these on a remote server without a job scheduler (eg. SLURM) then they will fail if you lose connection to the server.  
-You can avoid that by using somethink like `tmux` or `screen`, but I always run them like this:   
+You can avoid that by using something like `tmux` or `screen`, but I always run them like this:   
 
 ```bash
 nohup sh script.sh input output > nohup_out &
