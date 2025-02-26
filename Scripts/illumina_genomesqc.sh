@@ -93,13 +93,13 @@ fi
 echo 'All specified inputs look good, starting pipeline'
 
 echo 'Computing FASTQ read stats'
-seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | cut -f 1,4 > ${OUTPUTDIR}/read_stats.tsv
+seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | cut -f 1,4 | sed 's,_S.*.fastq.gz,,' > ${OUTPUTDIR}/read_stats.tsv
 
 echo 'Making output Directory'
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/SPADES/
 
-echo > ${OUTPUTDIR}/KRAKEN/top3species.tsv
+echo 'file\tspecies1\tspecies2\tspecies3' > ${OUTPUTDIR}/KRAKEN/top3species.tsv
 
 while read i j k
 do
@@ -126,11 +126,17 @@ do
                 head -n 10 > ${OUTPUTDIR}/KRAKEN/${i}_report_top10species.tsv
 
     # pull out the top 3 most abundant species per sample and combine into one file
-    # Extract species-level classifications
-    species_data=$(awk -F'\t' '$1 ~ /s__/ {gsub(/^ +| +$/, "", $0); print $2, $1}' \
-        ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sort -k1,1nr)
+    # Extract species-level classifications and clean up formatting
+    species_data=$(awk -F'\t' '
+        $1 ~ /\|s__/ { 
+            sub(/.*\|s__/, "s__", $1); # Remove everything before the last "|s__"
+            gsub(/^ +| +$/, "", $0);  # Trim whitespace
+            print $2, $1              # Print abundance + full species name
+        }' "${OUTPUTDIR}/KRAKEN/${i}_report.tsv" | sort -k1,1nr)
+
     # Calculate total reads classified to species level
     total_reads=$(echo "$species_data" | awk '{sum+=$1} END {print sum}')
+
     # Extract the top 3 species and compute relative abundance
     top3=$(echo "$species_data" | awk -v total="$total_reads" '
         NR==1 {printf "%s (%.2f%%)", $2, ($1/total)*100}
@@ -154,5 +160,10 @@ done < ${OUTPUTDIR}/.temp_manifest
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
 
-seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | cut -f 1,4,5,13 > ${OUTPUTDIR}/assembly_stats.tsv
+seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | cut -f 1,4,5,13 | sed 's,_contigs.fa,,' > ${OUTPUTDIR}/assembly_stats.tsv
 
+paste ${OUTPUTDIR}/read_stats.tsv \
+    ${OUTPUTDIR}/assembly_stats.tsv \
+    ${OUTPUTDIR}/KRAKEN/top3species.tsv \
+    cut -f 1,2,4,5,6,8,9,10 \
+    > ${OUTPUTDIR}/summary.tsv
