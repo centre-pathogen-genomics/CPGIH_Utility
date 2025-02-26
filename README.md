@@ -46,7 +46,8 @@ install.packages('dplyr')
 install.packages('BiocManager')
 BiocManager::install('decontam')
 # quit R session
-quit()
+q()
+# might need to hit n + enter here
 # you should now be back on the linux/mac command line
 ```
 

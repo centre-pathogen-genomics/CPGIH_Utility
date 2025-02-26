@@ -119,28 +119,8 @@ do
             sort -t$'\t' -k2,2nr | \
                 head -n 10 > ${OUTPUTDIR}/KRAKEN/${i}_report_top10species.tsv
 
-    # pull out the top 3 most abundant species per sample and combine into one file
-    # Extract species-level classifications and clean up formatting
-    species_data=$(awk -F'\t' '
-        $1 ~ /\|s__/ { 
-            match($1, /\|s__([A-Za-z]+) ([A-Za-z]+)/, species);
-            if (species[1] && species[2]) {
-                print $2, "s__" species[1] " " species[2]; # Print read count + full species name
-            }
-        }' "${OUTPUTDIR}/KRAKEN/${i}_report.tsv" | sort -k1,1nr)
-
-    # Calculate total reads classified to species level
-    total_reads=$(echo "$species_data" | awk '{sum+=$1} END {print sum}')
-
-    # Extract the top 3 species and compute relative abundance
-    top3=$(echo "$species_data" | awk -v total="$total_reads" '
-        NR==1 {printf "%s (%.2f%%)", $2, ($1/total)*100}
-        NR==2 {printf "\t%s (%.2f%%)", $2, ($1/total)*100}
-        NR==3 {printf "\t%s (%.2f%%)", $2, ($1/total)*100}
-    ')
-
-    # Append results to output file
-    echo -e "${i}\t${top3}" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
+    # extract species counts from report - will use these after looop in summary output
+    grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
 
     echo 'Starting Spades assembly of sample' ${i}
     spades.py \
@@ -166,7 +146,7 @@ seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | \
     sed 's,_contigs.fa,,' | \
     sed 's,num_seqs,num_contigs, ; s,sum_len,sum_len_contigs, ; s,N50,N50_contigs,' > ${OUTPUTDIR}/assembly_stats.tsv
 
-sed -i '1i file\tspecies1\tspecies2\tspecies3' ${OUTPUTDIR}/KRAKEN/top3species.tsv 
+Rscript krakenreport_top3species.R ${OUTPUTDIR}/KRAKEN/
 
 paste ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
