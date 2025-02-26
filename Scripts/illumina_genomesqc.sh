@@ -170,4 +170,4 @@ paste ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
     cut -f 1,2,4,5,6,8,9,10 | \
-    sed 's,num_seqs,num_reads, ; s,num_seqs,num_contigs, s,sum_len,sum_len_contigs, ; s,N50,N50_contigs,' > ${OUTPUTDIR}/summary.tsv
+    sed 's,num_seqs,num_reads, ; s,num_seqs,num_contigs, ; s,sum_len,sum_len_contigs, ; s,N50,N50_contigs,' > ${OUTPUTDIR}/summary.tsv
