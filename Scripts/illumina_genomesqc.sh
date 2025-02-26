@@ -123,9 +123,10 @@ do
     # Extract species-level classifications and clean up formatting
     species_data=$(awk -F'\t' '
     $1 ~ /\|s__/ { 
-        match($1, /\|s__([^|]*)$/, sp); # Extract full species name
-        if (sp[1] != "") print $2, "s__" sp[1]; # Ensure output format
+        match($1, /\|s__([^|]*)$/, sp); 
+        if (sp[1] != "") print $2, "s__" sp[1]; 
     }' "${OUTPUTDIR}/KRAKEN/${i}_report.tsv" | sort -k1,1nr)
+
 
     # Calculate total reads classified to species level
     total_reads=$(echo "$species_data" | awk '{sum+=$1} END {print sum}')
