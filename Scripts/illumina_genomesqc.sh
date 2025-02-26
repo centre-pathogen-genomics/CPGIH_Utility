@@ -153,18 +153,16 @@ do
 
 done < ${OUTPUTDIR}/.temp_manifest
 
-rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
-
 echo 'Computing FASTQ read stats'
 seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
     cut -f 1,4 | \
-    sed 's,_S.*.fastq.gz,,' \
+    sed 's,_S.*.fastq.gz,,' | \
     sed 's,num_seqs,num_reads,' > ${OUTPUTDIR}/read_stats.tsv
 
 echo 'Computing assembly stats'
 seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | \
     cut -f 1,4,5,13 | \
-    sed 's,_contigs.fa,,' \
+    sed 's,_contigs.fa,,' | \
     sed 's,num_seqs,num_contigs, ; s,sum_len,sum_len_contigs, ; s,N50,N50_contigs,' > ${OUTPUTDIR}/assembly_stats.tsv
 
 sed -i '1i file\tspecies1\tspecies2\tspecies3' ${OUTPUTDIR}/KRAKEN/top3species.tsv 
@@ -173,3 +171,5 @@ paste ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
     cut -f 1,2,4,5,6,8,9,10 > ${OUTPUTDIR}/summary.tsv
+
+rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
