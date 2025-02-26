@@ -35,7 +35,7 @@ then
 
     else
 
-    echo 'Creating output directory'${OUTPUTDIR}
+    echo 'Creating output directory' ${OUTPUTDIR}
     mkdir -p ${OUTPUTDIR}/
 
 fi
@@ -92,7 +92,6 @@ fi
 
 echo 'All specified inputs look good, starting pipeline'
 
-echo 'Making output Directory'
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/SPADES/
 
@@ -124,9 +123,9 @@ do
     # Extract species-level classifications and clean up formatting
     species_data=$(awk -F'\t' '
         $1 ~ /\|s__/ { 
-            sub(/.*\|s__/, "s__", $1); # Remove everything before the last "|s__"
-            gsub(/^ +| +$/, "", $0);  # Trim whitespace
-            print $2, $1              # Print abundance + full species name
+            sub(/.*\|s__/, "s__", $1);
+            gsub(/^ +| +$/, "", $0);
+            print $2, $1
         }' "${OUTPUTDIR}/KRAKEN/${i}_report.tsv" | sort -k1,1nr)
 
     # Calculate total reads classified to species level
