@@ -56,7 +56,6 @@ do
 done < ${NAMES} > ${OUTPUTDIR}/.temp_paths2
 
 paste ${NAMES} ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 > ${OUTPUTDIR}/.temp_manifest
-rm -f ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
