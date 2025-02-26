@@ -7,6 +7,9 @@ NAMES=$1
 INPUTDIR=$2
 OUTPUTDIR=$3
 
+# save directory that scripts are running from
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ensure names file exits
 if [ ! -f ${NAMES} ]
 then
@@ -146,7 +149,7 @@ seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | \
     sed 's,_contigs.fa,,' | \
     sed 's,num_seqs,num_contigs, ; s,sum_len,sum_len_contigs, ; s,N50,N50_contigs,' > ${OUTPUTDIR}/assembly_stats.tsv
 
-Rscript krakenreport_top3species.R ${OUTPUTDIR}/KRAKEN/
+Rscript ${SCRIPT_DIR}/krakenreport_top3species.R ${OUTPUTDIR}/KRAKEN/
 
 paste ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
