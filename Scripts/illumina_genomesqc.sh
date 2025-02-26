@@ -122,11 +122,10 @@ do
     # pull out the top 3 most abundant species per sample and combine into one file
     # Extract species-level classifications and clean up formatting
     species_data=$(awk -F'\t' '
-        $1 ~ /\|s__/ { 
-            sub(/.*\|s__/, "s__", $1);
-            gsub(/^ +| +$/, "", $0);
-            print $2, $1
-        }' "${OUTPUTDIR}/KRAKEN/${i}_report.tsv" | sort -k1,1nr)
+    $1 ~ /\|s__/ { 
+        match($1, /\|s__([^|]*)$/, sp); # Extract full species name
+        if (sp[1] != "") print $2, "s__" sp[1]; # Ensure output format
+    }' "${OUTPUTDIR}/KRAKEN/${i}_report.tsv" | sort -k1,1nr)
 
     # Calculate total reads classified to species level
     total_reads=$(echo "$species_data" | awk '{sum+=$1} END {print sum}')
