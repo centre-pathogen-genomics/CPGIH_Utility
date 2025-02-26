@@ -72,7 +72,6 @@ do
 done < ${NAMES} > ${OUTPUTDIR}/temp_paths
 
 paste ${NAMES} ${OUTPUTDIR}/temp_paths > ${OUTPUTDIR}/temp_manifest.tsv
-rm -f ${OUTPUTDIR}/temp_paths
 
 # START PIPELINE
 
@@ -121,4 +120,4 @@ done < ${OUTPUTDIR}/temp_manifest.tsv
 grep 'Mean coverage' ${OUTPUTDIR}/FLYE/*/flye.log | \
     sed 's,.*FLYE/,, ; s,/flye.log:,, ; s,Mean coverage:\t,,' > ${OUTPUTDIR}/coverage_stats.tsv
 
-rm -f ${OUTPUTDIR}/temp_manifest.tsv
+rm -f ${OUTPUTDIR}/temp_manifest.tsv ${OUTPUTDIR}/temp_paths
