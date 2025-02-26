@@ -164,6 +164,4 @@ seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | cut -f 1,4,5,13 | sed 's,_c
 
 paste ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
-    ${OUTPUTDIR}/KRAKEN/top3species.tsv \
-    cut -f 1,2,4,5,6,8,9,10 \
-    > ${OUTPUTDIR}/summary.tsv
+    ${OUTPUTDIR}/KRAKEN/top3species.tsv | cut -f 1,2,4,5,6,8,9,10 > ${OUTPUTDIR}/summary.tsv
