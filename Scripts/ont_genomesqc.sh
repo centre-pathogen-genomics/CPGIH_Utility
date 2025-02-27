@@ -69,13 +69,30 @@ do
 
     ls ${INPUTDIR}/${i}.fastq.gz 
 
-done < ${NAMES} > ${OUTPUTDIR}/temp_paths
+done < ${NAMES} > ${OUTPUTDIR}/.temp_paths
 
-paste ${NAMES} ${OUTPUTDIR}/temp_paths > ${OUTPUTDIR}/temp_manifest.tsv
+paste ${NAMES} ${OUTPUTDIR}/.temp_paths > ${OUTPUTDIR}/.temp_manifest.tsv
 
 # START PIPELINE
 
 echo 'All specified inputs look good, starting pipeline'
+
+echo 'Computing FASTQ read stats'
+seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
+    cut -f 1,4,6,7,8,13 | \
+    sed 's,.fastq.gz,,' | \
+    sed 's,num_seqs,reads,' > ${OUTPUTDIR}/.read_stats
+
+# identify empty read sets and remove from analysis loop
+awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats | cut -f 1 > ${OUTPUTDIR}/.emptysamples
+awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
+
+# remove empty read sets from read stats file
+awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
+
+# print information about empty reads sets
+echo 'Removing the following samples from QC due to empty read sets"'
+cat ${OUTPUTDIR}/.emptysamples
 
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/FLYE/
@@ -102,6 +119,9 @@ do
             sort -t$'\t' -k2,2nr | \
                 head -n 10 > ${OUTPUTDIR}/KRAKEN/${i}_report_top10species.tsv
 
+    # extract species counts from report - will use these after loop in summary output
+    grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sed 's,.*s__,,' > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
+    
     echo 'Starting Flye assembly of sample' ${i}
 
     flye \
@@ -111,13 +131,57 @@ do
 
     mv ${OUTPUTDIR}/FLYE/${i}/assembly.fasta ${OUTPUTDIR}/FLYE/${i}_assembly.fasta
 
-done < ${OUTPUTDIR}/temp_manifest.tsv
+done < ${OUTPUTDIR}/.temp_manifest_filtered
 
-/home/cwwalsh/Software/seqkit stats \
-    -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
-        cut -f 1,4,5,13 > ${OUTPUTDIR}/assembly_stats.tsv
+# summarising kraken2 species results
+echo -e "species1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
+# Loop through each report file
+for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
+    awk -F'\t' '
+        {
+            sum += $2
+            data[NR] = $1
+            counts[NR] = $2
+        }
+        END {
+            if (sum == 0) {
+                # If total sum is zero, output NA (0.00%) for all columns
+                print "NA (0.00%)\tNA (0.00%)\tNA (0.00%)"
+            } else {
+                # Sort indexes based on counts
+                n = asort(counts, sorted_counts, "@val_num_desc")
+
+                # Create formatted output with up to 3 species
+                for (e = 1; e <= 3; e++) {
+                    if (e <= n) {
+                        species_name = data[e]
+                        percent = (counts[e] / sum) * 100
+                        printf "%s (%.2f%%)", species_name, percent
+                    } else {
+                        printf "NA (0.00%%)"
+                    }
+                    if (e < 3) printf "\t"
+                }
+                print ""
+            }
+        }
+    ' "$file" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
+done
+
+echo 'Computing assembly stats'
+seqkit stats -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
+    cut -f 1,4,5,13 | \
+    sed 's,_assmebly.fasta,,' | \
+    sed 's,num_seqs,contigs, ; s,sum_len,assembly_length, ; s,N50,assembly_N50,' > ${OUTPUTDIR}/assembly_stats.tsv
+
+paste ${OUTPUTDIR}/read_stats.tsv \
+    ${OUTPUTDIR}/assembly_stats.tsv \
+    ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
+    cut -f 1,2,4,5,6,7,8,9,10 > ${OUTPUTDIR}/summary.tsv
+
+rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
 
 grep 'Mean coverage' ${OUTPUTDIR}/FLYE/*/flye.log | \
     sed 's,.*FLYE/,, ; s,/flye.log:,, ; s,Mean coverage:\t,,' > ${OUTPUTDIR}/coverage_stats.tsv
 
-rm -f ${OUTPUTDIR}/temp_manifest.tsv ${OUTPUTDIR}/temp_paths
+rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
