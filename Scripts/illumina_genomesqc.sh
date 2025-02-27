@@ -104,8 +104,6 @@ seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
 # identify empty read sets and remove from analysis loop
 awk -F '\t' '$2 == 0' ${OUTPUTDIR}/read_stats.tsv | cut -f 1 > ${OUTPUTDIR}/.emptysamples
 awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
-
-exit 1
     
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/SPADES/
