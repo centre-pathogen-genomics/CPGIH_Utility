@@ -85,11 +85,11 @@ seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths | \
 
 # identify empty read sets and remove from analysis loop
 awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats | cut -f 1 > ${OUTPUTDIR}/.emptysamples
-[ -s file2.tsv ] && awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
+[ -s ${OUTPUTDIR}/.emptysamples ] && awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
     ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest || cat ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
 
 # remove empty read sets from read stats file
-[ -s file2.tsv ] && awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
+[ -s ${OUTPUTDIR}/.emptysamples ] && awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
     ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats || cat ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
 
 # print information about empty reads sets
