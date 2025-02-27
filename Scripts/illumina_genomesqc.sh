@@ -103,12 +103,21 @@ seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
 
 # identify empty read sets and remove from analysis loop
 awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats | cut -f 1 > ${OUTPUTDIR}/.emptysamples
-[ -s ${OUTPUTDIR}/.emptysamples ] && awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
-    ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest || cat ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
+
+if [ -s ${OUTPUTDIR}/.emptysamples ]; then
+    awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
+        ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
+else
+    cp ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered
+fi
 
 # remove empty read sets from read stats file
-[ -s ${OUTPUTDIR}/.emptysamples ] && awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
-    ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats || cat ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
+if [ -s ${OUTPUTDIR}/.emptysamples ]; then
+    awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
+        ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
+else
+    cp ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered
+fi
 
 # print information about empty reads sets
 echo 'Removing the following samples from QC due to empty read sets:'
