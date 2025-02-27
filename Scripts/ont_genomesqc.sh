@@ -98,7 +98,7 @@ if [ -s ${OUTPUTDIR}/.emptysamples ]; then
     awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
         ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
 else
-    cp ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered
+    cp ${OUTPUTDIR}/.read_stats ${OUTPUTDIR}/read_stats.tsv
 fi
 
 # print information about empty reads sets
