@@ -71,7 +71,7 @@ do
 
 done < ${NAMES} > ${OUTPUTDIR}/.temp_paths
 
-paste ${NAMES} ${OUTPUTDIR}/.temp_paths > ${OUTPUTDIR}/.temp_manifest.tsv
+paste ${NAMES} ${OUTPUTDIR}/.temp_paths > ${OUTPUTDIR}/.temp_manifest
 
 # START PIPELINE
 
