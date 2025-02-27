@@ -32,7 +32,7 @@ Alternatively you can make your own conda environment. Following these steps sho
 
 ```bash
 # create a conda environment into which you will install the software
-onda create -n cpgih_utility -y
+conda create -n cpgih_utility -y
 # activate the conda environment
 conda activate cpgih_utility
 # install the required software 
@@ -131,9 +131,16 @@ Rscript ~/Tools/CPGIH_Utility/Scripts/barplots.R names emu-combined-abundance-sp
 The first option will run the script as default, the second option will modify the width and height (in inches) of the output PDF (the defaults are 12 and 8 respecively so this will double the width, useful if you have a lot of samples). If you want to modify the height or width, you will need to specify both - even if the other is the same as a default value.  
 
 ### ILLUMINA ISOLATE GENOMES
-The `illumina_genomesqc.sh` script will take the input FASTQ reads, assign taxonomy to the reads using [Kraken2](https://github.com/DerrickWood/kraken2), generate a draft assembly with [shovill](https://github.com/tseemann/shovill), and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
+The `illumina_genomesqc.sh` script will take the input FASTQ reads, assign taxonomy to the reads using [Kraken2](https://github.com/DerrickWood/kraken2) and generate a draft assembly with [SPAdes](https://github.com/ablab/spades).  
+Expected output is a directory with subdirectories for Kraken2 and Spades outputs - taxonomic profiles and assembled genomes respectively.  The user will likely be interested in the file `summary.tsv` which describes, for each sample: 
+- the number of input FASTQ read pairs
+- the distribution of the read lengths (min, average, max, N50) 
+- the number of contigs in the final assembly
+- total assembly length
+- assembly N50
+- top 3 most abundant species as detected by Kraken2 
 
-Three positional arguments are required:
+When running the script, three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the sample), one per line
 2. The path to the directory containing the `fastq.gz` reads
 3. The output directory you want to create 
@@ -144,7 +151,14 @@ bash ~/Tools/CPGIH_Utility/Scripts/illumina_genomesqc.sh names inputdirectory ou
 ```
 
 ### ONT ISOLATE GENOMES
-The `ont_genomesqc.sh` script works similar to the Illumina one. It will take the input FASTQ reads, assign taxonomy to the reads using [Kraken2](https://github.com/DerrickWood/kraken2), generate a draft assembly with [flye](https://github.com/mikolmogorov/Flye), and summarise the assembly quality (length, N50 etc.) and (depth of) coverage.  
+The `ont_genomesqc.sh` script works similar to the Illumina one. It will take the input FASTQ reads, assign taxonomy to the reads using [Kraken2](https://github.com/DerrickWood/kraken2) and generate a draft assembly with [flye](https://github.com/mikolmogorov/Flye).  
+Expected output is, like the Illumina script above, a directory with subdirectories for Kraken2 and Flye outputs - taxonomic profiles and assembled genomes respectively and the `summary.tsv` file describing, for each sample: 
+- the number of input FASTQ reads
+- the distribution of the read lengths (min, average, max, N50) 
+- the number of contigs in the final assembly
+- total assembly length
+- assembly N50
+- top 3 most abundant species as detected by Kraken2 
 
 Three positional arguments are required:
 1. A file listing the basenames you want to include (the name of the sample), one per line
