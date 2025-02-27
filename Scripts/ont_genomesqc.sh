@@ -78,7 +78,7 @@ paste ${NAMES} ${OUTPUTDIR}/.temp_paths > ${OUTPUTDIR}/.temp_manifest.tsv
 echo 'All specified inputs look good, starting pipeline'
 
 echo 'Computing FASTQ read stats'
-seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
+seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths | \
     cut -f 1,4,6,7,8,13 | \
     sed 's,.fastq.gz,,' | \
     sed 's,num_seqs,reads,' > ${OUTPUTDIR}/.read_stats
