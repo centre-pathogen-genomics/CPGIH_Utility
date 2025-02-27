@@ -95,6 +95,18 @@ fi
 
 echo 'All specified inputs look good, starting pipeline'
 
+echo 'Computing FASTQ read stats'
+seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
+    cut -f 1,4 | \
+    sed 's,_S.*.fastq.gz,,' | \
+    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats.tsv
+
+# identify empty read sets and remove from analysis loop
+awk -F '\t' '$2 == 3722' ${OUTPUTDIR}/read_stats.tsv | cut -f 1 > ${OUTPUTDIR}/.emptysamples
+awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
+
+exit 1
+    
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/SPADES/
 
@@ -139,7 +151,7 @@ do
 
     rm -rf ${OUTPUTDIR}/SPADES/${i}/
 
-done < ${OUTPUTDIR}/.temp_manifest
+done < ${OUTPUTDIR}/.temp_manifest_filtered
 
 # summarising kraken2 species results
 echo -e "species1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
@@ -176,12 +188,6 @@ for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
     ' "$file" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
 done
 
-echo 'Computing FASTQ read stats'
-seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
-    cut -f 1,4 | \
-    sed 's,_S.*.fastq.gz,,' | \
-    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats.tsv
-
 echo 'Computing assembly stats'
 seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | \
     cut -f 1,4,5,13 | \
@@ -193,4 +199,4 @@ paste ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
     cut -f 1,2,4,5,6,7,8,9,10 > ${OUTPUTDIR}/summary.tsv
 
-rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
+rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
