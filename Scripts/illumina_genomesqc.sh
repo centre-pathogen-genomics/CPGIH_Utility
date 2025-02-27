@@ -109,7 +109,7 @@ awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' ${OUTPUTDIR}/.emptysa
 awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
 
 # print information about empty reads sets
-echo 'Removing the following samples from QC due to empty read sets"'
+echo 'Removing the following samples from QC due to empty read sets:'
 cat ${OUTPUTDIR}/.emptysamples
     
 mkdir -p ${OUTPUTDIR}/KRAKEN/
