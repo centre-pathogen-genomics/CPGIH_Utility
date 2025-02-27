@@ -97,13 +97,16 @@ echo 'All specified inputs look good, starting pipeline'
 
 echo 'Computing FASTQ read stats'
 seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
-    cut -f 1,4 | \
+    cut -f 1,4,6,7,8,13 | \
     sed 's,_S.*.fastq.gz,,' | \
-    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats.tsv
+    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/.read_stats
 
 # identify empty read sets and remove from analysis loop
 awk -F '\t' '$2 == 0' ${OUTPUTDIR}/read_stats.tsv | cut -f 1 > ${OUTPUTDIR}/.emptysamples
 awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
+
+# remove empty read sets from read stats file
+awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
     
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/SPADES/
