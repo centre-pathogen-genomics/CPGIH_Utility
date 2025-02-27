@@ -122,8 +122,8 @@ do
             sort -t$'\t' -k2,2nr | \
                 head -n 10 > ${OUTPUTDIR}/KRAKEN/${i}_report_top10species.tsv
 
-    # extract species counts from report - will use these after looop in summary output
-    grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
+    # extract species counts from report - will use these after loop in summary output
+    grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sed 's,.*s__,,' > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
 
     echo 'Starting Spades assembly of sample' ${i}
     spades.py \
@@ -137,6 +137,33 @@ do
 
 done < ${OUTPUTDIR}/.temp_manifest
 
+# summarising kraken2 species results
+echo -e "species1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
+
+# Loop through each report file
+for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
+    awk -F'\t' '
+        {
+            sum += $2
+            data[NR] = $1
+            counts[NR] = $2
+        }
+        END {
+            # Sort indexes based on counts
+            n = asort(counts, sorted_counts, "@val_num_desc")
+
+            # Create formatted output
+            for (e = 1; e <= 3; e++) {
+                species_name = data[e]
+                percent = (counts[e] / sum) * 100
+                printf "%s (%.2f%%)", species_name, percent
+                if (e < 3) printf "\t"
+            }
+            print ""
+        }
+    ' "$file" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
+done
+
 echo 'Computing FASTQ read stats'
 seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
     cut -f 1,4 | \
@@ -148,8 +175,6 @@ seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | \
     cut -f 1,4,5,13 | \
     sed 's,_contigs.fa,,' | \
     sed 's,num_seqs,num_contigs, ; s,sum_len,sum_len_contigs, ; s,N50,N50_contigs,' > ${OUTPUTDIR}/assembly_stats.tsv
-
-Rscript ${SCRIPT_DIR}/krakenreport_top3species.R ${OUTPUTDIR}/KRAKEN/
 
 paste ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
