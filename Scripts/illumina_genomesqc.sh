@@ -137,6 +137,8 @@ do
     mv ${OUTPUTDIR}/SPADES/${i}/assembly_graph_with_scaffolds.gfa ${OUTPUTDIR}/SPADES/${i}_assembly_graph_with_scaffolds.gfa
     mv ${OUTPUTDIR}/SPADES/${i}/spades.log ${OUTPUTDIR}/SPADES/${i}_spades.log
 
+    rm -rf ${OUTPUTDIR}/SPADES/${i}/
+
 done < ${OUTPUTDIR}/.temp_manifest
 
 # summarising kraken2 species results
@@ -150,17 +152,26 @@ for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
             counts[NR] = $2
         }
         END {
-            # Sort indexes based on counts
-            n = asort(counts, sorted_counts, "@val_num_desc")
+            if (sum == 0) {
+                # If total sum is zero, output NA (0.00%) for all columns
+                print "NA (0.00%)\tNA (0.00%)\tNA (0.00%)"
+            } else {
+                # Sort indexes based on counts
+                n = asort(counts, sorted_counts, "@val_num_desc")
 
-            # Create formatted output
-            for (e = 1; e <= 3; e++) {
-                species_name = data[e]
-                percent = (counts[e] / sum) * 100
-                printf "%s (%.2f%%)", species_name, percent
-                if (e < 3) printf "\t"
+                # Create formatted output with up to 3 species
+                for (e = 1; e <= 3; e++) {
+                    if (e <= n) {
+                        species_name = data[e]
+                        percent = (counts[e] / sum) * 100
+                        printf "%s (%.2f%%)", species_name, percent
+                    } else {
+                        printf "NA (0.00%%)"
+                    }
+                    if (e < 3) printf "\t"
+                }
+                print ""
             }
-            print ""
         }
     ' "$file" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
 done
