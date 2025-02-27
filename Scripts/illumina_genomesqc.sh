@@ -141,7 +141,6 @@ done < ${OUTPUTDIR}/.temp_manifest
 
 # summarising kraken2 species results
 echo -e "species1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
-
 # Loop through each report file
 for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
     awk -F'\t' '
