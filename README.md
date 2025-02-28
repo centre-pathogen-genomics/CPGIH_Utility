@@ -1,8 +1,13 @@
 # CPG Innovation Hub Utility Scripts
 
 This repository contains utility scripts for random stuff we do in CPG-IH.  
+You can use the links immediately below here to more easily navigate to relevant sections
+
+:construction: convert into wiki format
 
 - [INSTALLATION AND SETUP](#installation-and-setup)
+- [DOWNLOADING AND INSTALLING DATABASES](#downloading-and-installing-databases)
+    - [KRAKEN2](#kraken2)
 - [GENERAL TIPS](#general-tips)
 - [DATA PROCESSING](#data-processing)
     - [ONT FASTQ BACKUP](#ont-fastq-backup)
@@ -17,9 +22,11 @@ This repository contains utility scripts for random stuff we do in CPG-IH.
 First you need to clone this repository to your local machine/server. You can do this to any directory, but for the purposes of this documentation we will do it in a new directory called `Tools/` in your home directory (`~`).  
 
 ```bash
+# create directory to store repository locally
 mkdir ~/Tools/
-cd ~/Tools/
-git clone https://github.com/centre-pathogen-genomics/CPGIH_Utility.git 
+
+# clone repository to newly created directory
+git clone https://github.com/centre-pathogen-genomics/CPGIH_Utility.git ~/Tools/CPGIH_Utility
 ```
 
 If you are using the MDU servers is it easiest to just load my conda env - it should set all the paths correctly.  
@@ -28,28 +35,81 @@ If you are using the MDU servers is it easiest to just load my conda env - it sh
 conda activate /home/cwwalsh/miniconda3/envs/cpgih_utility
 ```
 
-Alternatively you can make your own conda environment. Following these steps should give you one that does everything - you will need to install your own databases for [kraken2](https://benlangmead.github.io/aws-indexes/k2) and [emu](https://github.com/treangenlab/emu) or modify the scripts to use existing ones.  
+Alternatively you can make your own conda environment.  
+
+:construction: add note here on installing conda locally  
+:construction: remove decontam and barplots from pipelines as they are too difficult to reliably install in conda env - instead include the code as a tutorial to be performed manually  
+
+Following these steps should give you one that does everything - you will need to install your own databases for [Kraken2](https://benlangmead.github.io/aws-indexes/k2) and [emu](https://github.com/treangenlab/emu) (see below for instructions) or modify the scripts to use existing ones.  
 
 ```bash
 # create a conda environment into which you will install the software
 conda create -n cpgih_utility -y
+
 # activate the conda environment
 conda activate cpgih_utility
+
 # install the required software 
-conda install -c bioconda kraken2 shovill seqkit csvtk flye emu r-base
-# open an interactive session of R
-R
-# install required R packages that are annoying to get via conda
-install.packages('ggplot2')
-# you will need to pick a CRAN mirror here, I usually just pick one at random
-install.packages('dplyr')
-install.packages('BiocManager')
-BiocManager::install('decontam')
-# quit R session
-q()
-# might need to hit n + enter here
-# you should now be back on the linux/mac command line
+conda install -c bioconda kraken2 shovill seqkit csvtk flye emu -y
 ```
+
+## DOWNLOADING AND INSTALLING DATABASES 
+
+### KRAKEN2
+The scripts for Quality Control of genomic and metagenomic data use Kraken2 to identify the microbial species present. For this you will need to install suitable databases.  
+There are lot of Kraken2 databases to choose from [here](https://benlangmead.github.io/aws-indexes/k2) - generally those with a greater phylogenetic range (covering bacteria, archaea, fungi, protists etc.) will be larger and require more computing time and resources.  
+For the majority of users interested in identify "non-weird" microbial isolates and profiling human microbiome data, the Standard-8 or PlusPF-8 will suffice.   
+```bash
+# make a database in your home directory to store the database
+mkdir ~/kraken2_db
+
+# download the database to this directory - this will take a while
+curl -o ~/kraken2_db/k2_standard_08gb_20241228.tar.gz https://genome-idx.s3.amazonaws.com/kraken/k2_standard_08gb_20241228.tar.gz
+
+# extract the database
+tar -xzf ~/kraken2_db/k2_standard_08gb_20241228.tar.gz -C ~/kraken2_db 
+
+# remove the original download to save space
+rm ~/kraken2_db/k2_standard_08gb_20241228.tar.gz 
+
+# inpect the database to make sure everything is set up correctly
+kraken2-inspect --db ~/kraken2_db | head
+
+# you should get an output that looks something like this
+# Database options: nucleotide db, k = 35, l = 31
+# Spaced mask = 11111111111111111111111111111111110011001100110011001100110011
+# Toggle mask = 1110001101111110001010001100010000100111000110110101101000101101
+# Total taxonomy nodes: 50914
+# Table size: 1398394626
+# Table capacity: 2000000000
+# Min clear hash value = 16812150170552094720
+100.00	1398394626	458617	R	1	root
+ 99.28	1388303726	356261	R1	131567	  cellular organisms
+ 91.48	1279314785	2721882	D	2	    Bacteria
+
+# the final thing you will need to do is tell conda where to find this database
+# you can do this by setting the KRAKEN_DEFAULT_DB variable 
+# note that kraken2 doesn't like the '~' symbol in the path so we will fill that in
+conda env config vars set KRAKEN2_DEFAULT_DB=$HOME/kraken2_db
+
+# you should then see a message like this
+To make your changes take effect please reactivate your environment
+
+# so now we deactivate and reactivate the environment to make the changes
+conda deactivate
+conda activate cpgih_utility
+
+# confirm the changes have taken effect
+conda env config vars list
+
+# you will get an output that looks something like this
+# note the path will be different based on your system and username
+KRAKEN2_DEFAULT_DB = /Users/cwwalsh/kraken2_db
+
+# this will now be set every time you load the conda environment
+```
+
+:construction: fix QC scripts to use default kraken2 database on roosta
 
 ## GENERAL TIPS
 Some of the scripts in this repository will take a while to run - if you are running these on a remote server without a job scheduler (eg. SLURM) then they will fail if you lose connection to the server.  

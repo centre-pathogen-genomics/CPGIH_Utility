@@ -1,4 +1,3 @@
-suppressMessages(suppressWarnings(library('tidyverse')))
 suppressMessages(suppressWarnings(library('decontam')))
 suppressMessages(suppressWarnings(library('qiime2R')))
 suppressMessages(suppressWarnings(library('phyloseq')))
@@ -14,19 +13,14 @@ phylo <- qza_to_phyloseq(features = input_file, metadata = metadata_file)
 
 contamdf.prev <- decontam::isContaminant(phylo, method = "prevalence", neg = decontam_column)
 
-noncontamOTUs <- contamdf.prev %>%
-    filter(contaminant == FALSE) %>%
-    row.names()
+noncontamOTUs <- rownames(contamdf.prev[contamdf.prev$contaminant == FALSE, ])
 
-contamdf.prev %>%
-    filter(contaminant == TRUE) %>%
-    row.names() %>%
-    write.csv('contaminant_otus.csv')
+write.csv(rownames(contamdf.prev[contamdf.prev$contaminant == TRUE, ]), 
+          file = "contaminant_otus.csv", 
+          row.names = FALSE)
 
 phylo_decontam <- prune_taxa(noncontamOTUs, phylo)
 
-phylo_decontam %>%
-    otu_table() %>%
-    as.matrix() %>%
-    biomformat::make_biom() %>%
-    biomformat::write_biom(output_file)
+biom_obj <- biomformat::make_biom(as.matrix(otu_table(phylo_decontam)))
+biomformat::write_biom(biom_obj, output_file)
+
