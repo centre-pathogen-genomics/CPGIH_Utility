@@ -58,7 +58,7 @@ conda install -c bioconda kraken2 shovill seqkit csvtk flye emu -y
 ### KRAKEN2
 The scripts for Quality Control of genomic and metagenomic data use Kraken2 to identify the microbial species present. For this you will need to install suitable databases.  
 There are lot of Kraken2 databases to choose from [here](https://benlangmead.github.io/aws-indexes/k2) - generally those with a greater phylogenetic range (covering bacteria, archaea, fungi, protists etc.) will be larger and require more computing time and resources.  
-For the majority of users interested in identify "non-weird" microbial isolates and profiling human microbiome data, the Standard-8 or PlusPF-8 will suffice.   
+For the majority of users interested in identifing "non-weird" microbial isolates and profiling human microbiome data, the Standard-8 or PlusPF-8 will probably suffice.   
 ```bash
 # make a database in your home directory to store the database
 mkdir ~/kraken2_db
@@ -108,8 +108,6 @@ KRAKEN2_DEFAULT_DB = /Users/cwwalsh/kraken2_db
 
 # this will now be set every time you load the conda environment
 ```
-
-:construction: fix QC scripts to use default kraken2 database on roosta
 
 ## GENERAL TIPS
 Some of the scripts in this repository will take a while to run - if you are running these on a remote server without a job scheduler (eg. SLURM) then they will fail if you lose connection to the server.  

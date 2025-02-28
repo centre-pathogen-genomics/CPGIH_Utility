@@ -133,7 +133,6 @@ do
     kraken2 \
         --use-mpa-style \
         --use-names \
-        --db /home/mdu/resources/kraken2/gtdb_r214/128gb/ \
         --confidence 0.1 \
         --threads 20 \
         --paired \
