@@ -203,7 +203,7 @@ do
 
     fi
 
-done < <(cat ../renaming.tsv; echo)
+done <(cat ../renaming.tsv; echo)
 
 # CREATE SEQ STATS
 echo "Generating Read Length and Quality Statistics"

@@ -53,7 +53,7 @@ do
 
 	fi
 
-done < <(cat ${NAMES}; echo)
+done <(cat ${NAMES}; echo)
 
 # exit if fastq files don't exist
 if [ ${FASTQERROR} = 'true' ]
