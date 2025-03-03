@@ -42,7 +42,7 @@ fi
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
-while read i 
+while IFS= read -r i 
 do
 
     if [ ! -f ${INPUTDIR}/"$i".fastq.gz ]
@@ -53,7 +53,7 @@ do
 
 	fi
 
-done < ${NAMES}
+done < <(cat ${NAMES}; echo)
 
 # exit if fastq files don't exist
 if [ ${FASTQERROR} = 'true' ]
@@ -64,12 +64,12 @@ then
 fi
 
 # make manifest file
-while read i
+while IFS= read -r i
 do
 
     ls ${INPUTDIR}/${i}.fastq.gz 
 
-done < ${NAMES} > ${OUTPUTDIR}/.temp_paths
+done <(cat ${NAMES}; echo) > ${OUTPUTDIR}/.temp_paths
 
 paste ${NAMES} ${OUTPUTDIR}/.temp_paths > ${OUTPUTDIR}/.temp_manifest
 
@@ -108,7 +108,7 @@ cat ${OUTPUTDIR}/.emptysamples
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/FLYE/
 
-while read i j
+while IFS= read -r i j
 do
 
     echo 'Starting Kraken2 classification of sample' ${i}
@@ -142,7 +142,7 @@ do
 
     mv ${OUTPUTDIR}/FLYE/${i}/assembly.fasta ${OUTPUTDIR}/FLYE/${i}_assembly.fasta
 
-done < ${OUTPUTDIR}/.temp_manifest_filtered
+done <(cat ${OUTPUTDIR}/.temp_manifest_filtered; echo)
 
 # summarising kraken2 species results
 echo -e "species1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv

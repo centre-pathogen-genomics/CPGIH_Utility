@@ -183,7 +183,7 @@ fi
 SAMPLECOUNT=$(ls -d * | wc -l)
 echo ${SAMPLECOUNT} "Samples Found"
     
-while read i j 
+while IFS= read -r i j 
 do
 
     FILECOUNT=$(ls -1 ${i}/ | wc -l)
@@ -203,7 +203,7 @@ do
 
     fi
 
-done < ../renaming.tsv
+done < <(cat ../renaming.tsv; echo)
 
 # CREATE SEQ STATS
 echo "Generating Read Length and Quality Statistics"

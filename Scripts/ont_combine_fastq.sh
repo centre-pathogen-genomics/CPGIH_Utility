@@ -74,7 +74,7 @@ fi
 mkdir -p ${OUTDIR}
 
 # CONCATENATE FASTQ AND RENAME 
-while read i j 
+while IFS= read -r i j 
 do
 
     FILECOUNT=$( ls -1 ${INDIR}/${i}/ | wc -l )
@@ -114,5 +114,5 @@ do
 
     fi
 
-done < ${RENAMING}
+done <(cat ${RENAMING}; echo)
 
