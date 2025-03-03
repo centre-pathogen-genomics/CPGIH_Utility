@@ -46,7 +46,7 @@ fi
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
-while IFS= read -r i 
+while IFS= read -r i  || [[ -n "$i" ]]
 do
 
     if [ ! -f ${INPUTDIR}/${i}.fastq.gz ]
@@ -57,7 +57,7 @@ do
 
 	fi
 
-done <(cat ${NAMES}; echo)
+done < ${NAMES}
 
 # exit if fastq files don't exist
 if [ ${FASTQERROR} = 'true' ]
@@ -68,12 +68,12 @@ then
 fi
 
 # make manifest file
-while IFS= read -r i
+while IFS= read -r i || [[ -n "$i" ]]
 do
 
     ls ${INPUTDIR}/${i}.fastq.gz 
 
-done <(cat ${NAMES}; echo) > ${OUTPUTDIR}/.paths
+done < ${NAMES} > ${OUTPUTDIR}/.paths
 
 paste ${NAMES} ${OUTPUTDIR}/.paths > ${OUTPUTDIR}/.manifest.tsv
 rm -f ${OUTPUTDIR}/.paths
@@ -85,7 +85,7 @@ echo 'Creating and outputting to' ${OUTPUTDIR}
 
 mkdir -p ${OUTPUTDIR}/FILTERED_FASTQ/
 
-while IFS= read -r i j
+while IFS= read -r i j || [[ -n "$i" ]]
 do
     
     echo 'Starting read filtering of sample' ${i}
@@ -95,12 +95,12 @@ do
 	   --min_length ${MINLEN} \
 	   --max_length ${MAXLEN}
 
-done <(cat ${OUTPUTDIR}/.manifest.tsv; echo) 
+done < ${OUTPUTDIR}/.manifest.tsv
 
 /home/cwwalsh/Software/seqkit stats\
 	-abT ${OUTPUTDIR}/FILTERED_FASTQ/*.fastq.gz > ${OUTPUTDIR}/seqkit_stats_filtered.txt
 
-while IFS= read -r i j
+while IFS= read -r i j || [[ -n "$i" ]]
 do 
 
     echo 'Starting Emu classification of sample' ${i}
@@ -113,7 +113,7 @@ do
 		--threads 10 \
 		${OUTPUTDIR}/FILTERED_FASTQ/${i}.fastq.gz
 
-done <(cat ${OUTPUTDIR}/.manifest.tsv; echo)
+done < ${OUTPUTDIR}/.manifest.tsv
 
 rm -f ${OUTPUTDIR}/EmuResults/*_rel-abundance-threshold-0.0001.tsv
 
