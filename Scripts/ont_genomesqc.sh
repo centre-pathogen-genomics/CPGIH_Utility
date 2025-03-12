@@ -86,33 +86,47 @@ seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths | \
 # identify empty read sets and remove from analysis loop
 awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats | cut -f 1 > ${OUTPUTDIR}/.emptysamples
 
-if [ -s ${OUTPUTDIR}/.emptysamples ]; then
+if [ -s ${OUTPUTDIR}/.emptysamples ]
+then
+    
     awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
         ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
+
 else
-    cp ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered
+   
+   cp ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered
+
 fi
 
 # remove empty read sets from read stats file
-if [ -s ${OUTPUTDIR}/.emptysamples ]; then
+if [ -s ${OUTPUTDIR}/.emptysamples ]
+then
+
     awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
         ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
+
 else
+
     cp ${OUTPUTDIR}/.read_stats ${OUTPUTDIR}/read_stats.tsv
+    
 fi
 
 # print information about empty reads sets
 SAMPLESREMOVED=$(wc -l < "${OUTPUTDIR}/.emptysamples")
 if [ "$SAMPLESREMOVED" -gt 0 ]
 then
+
     echo ''
     echo 'Removing the following samples from QC due to empty read sets:'
     cat ${OUTPUTDIR}/.emptysamples
     echo ''
+
 else
+
     echo ''
     echo 'All sample read sets are non-empty, retaining all for analysis'
     echo ''
+
 fi
 
 mkdir -p ${OUTPUTDIR}/KRAKEN/
