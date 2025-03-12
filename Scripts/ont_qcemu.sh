@@ -46,13 +46,13 @@ fi
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
-while IFS= read -r i  || [[ -n "$i" ]]
+while IFS= read -r i || [[ -n "$i" ]]
 do
 
     if [ ! -f ${INPUTDIR}/${i}.fastq.gz ]
 	then
 
-		echo 'File' ${j} 'does not exist'
+		echo 'File' ${i} 'does not exist'
 		FASTQERROR='true'
 
 	fi
@@ -75,7 +75,7 @@ do
 
 done < ${NAMES} > ${OUTPUTDIR}/.paths
 
-paste ${NAMES} ${OUTPUTDIR}/.paths > ${OUTPUTDIR}/.manifest.tsv
+paste -d $'\t' ${NAMES} ${OUTPUTDIR}/.paths > ${OUTPUTDIR}/.manifest.tsv
 rm -f ${OUTPUTDIR}/.paths
 
 # START PIPELINE
@@ -85,7 +85,7 @@ echo 'Creating and outputting to' ${OUTPUTDIR}
 
 mkdir -p ${OUTPUTDIR}/FILTERED_FASTQ/
 
-while IFS= read -r i j || [[ -n "$i" ]]
+while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
     
     echo 'Starting read filtering of sample' ${i}
@@ -100,7 +100,7 @@ done < ${OUTPUTDIR}/.manifest.tsv
 /home/cwwalsh/Software/seqkit stats\
 	-abT ${OUTPUTDIR}/FILTERED_FASTQ/*.fastq.gz > ${OUTPUTDIR}/seqkit_stats_filtered.txt
 
-while IFS= read -r i j || [[ -n "$i" ]]
+while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do 
 
     echo 'Starting Emu classification of sample' ${i}

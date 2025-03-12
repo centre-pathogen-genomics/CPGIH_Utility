@@ -58,11 +58,11 @@ do
 
 done < ${NAMES} > ${OUTPUTDIR}/.temp_paths2
 
-paste ${NAMES} ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 > ${OUTPUTDIR}/.temp_manifest
+paste -d $'\t' ${NAMES} ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 > ${OUTPUTDIR}/.temp_manifest
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
-while IFS= read -r i j k  || [[ -n "$i" ]]
+while IFS=$'\t' read -r i j k  || [[ -n "$i" ]]
 do
     
     if [ ! -f ${j} ]
@@ -120,13 +120,23 @@ else
 fi
 
 # print information about empty reads sets
-echo 'Removing the following samples from QC due to empty read sets:'
-cat ${OUTPUTDIR}/.emptysamples
+SAMPLESREMOVED=$(wc -l < "${OUTPUTDIR}/.emptysamples")
+if [ "$SAMPLESREMOVED" -gt 0 ]
+then
+    echo ''
+    echo 'Removing the following samples from QC due to empty read sets:'
+    cat ${OUTPUTDIR}/.emptysamples
+    echo ''
+else
+    echo ''
+    echo 'All sample read sets are non-empty, retaining all for analysis'
+    echo ''
+fi
     
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/SPADES/
 
-while IFS= read -r i j k || [[ -n "$i" ]]
+while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do
 
     echo 'Starting Kraken2 classification of sample' ${i}
@@ -209,7 +219,7 @@ seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | \
     sed 's,_contigs.fa,,' | \
     sed 's,num_seqs,contigs, ; s,sum_len,assembly_length, ; s,N50,assembly_N50,' > ${OUTPUTDIR}/assembly_stats.tsv
 
-paste ${OUTPUTDIR}/read_stats.tsv \
+paste -d $'\t' ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
     cut -f 1,2,3,4,5,6,8,9,10,11,12,13 > ${OUTPUTDIR}/summary.tsv

@@ -42,13 +42,13 @@ fi
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
-while IFS=$'\t' read -r i j || [[ -n "$i" ]]
+while IFS=$'\t' read -r i || [[ -n "$i" ]]
 do
 
     if [ ! -f ${INPUTDIR}/"$i".fastq.gz ]
 	then
 
-		echo 'File' "$j" 'does not exist'
+		echo 'File' "$i" 'does not exist'
 		FASTQERROR='true'
 
 	fi
@@ -64,7 +64,7 @@ then
 fi
 
 # make manifest file
-while IFS=$'\t' read -r i j || [[ -n "$i" ]]
+while IFS=$'\t' read -r i || [[ -n "$i" ]]
 do
 
     ls ${INPUTDIR}/${i}.fastq.gz 
@@ -102,8 +102,18 @@ else
 fi
 
 # print information about empty reads sets
-echo 'Removing the following samples from QC due to empty read sets:'
-cat ${OUTPUTDIR}/.emptysamples
+SAMPLESREMOVED=$(wc -l < "${OUTPUTDIR}/.emptysamples")
+if [ "$SAMPLESREMOVED" -gt 0 ]
+then
+    echo ''
+    echo 'Removing the following samples from QC due to empty read sets:'
+    cat ${OUTPUTDIR}/.emptysamples
+    echo ''
+else
+    echo ''
+    echo 'All sample read sets are non-empty, retaining all for analysis'
+    echo ''
+fi
 
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/FLYE/
