@@ -42,7 +42,7 @@ fi
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
-while IFS= read -r i || [[ -n "$i" ]] 
+while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
 
     if [ ! -f ${INPUTDIR}/"$i".fastq.gz ]
@@ -64,7 +64,7 @@ then
 fi
 
 # make manifest file
-while IFS= read -r i || [[ -n "$i" ]]
+while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
 
     ls ${INPUTDIR}/${i}.fastq.gz 
@@ -108,7 +108,7 @@ cat ${OUTPUTDIR}/.emptysamples
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/FLYE/
 
-while IFS= read -r i j || [[ -n "$i" ]]
+while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
 
     echo 'Starting Kraken2 classification of sample' ${i}
