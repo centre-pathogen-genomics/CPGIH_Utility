@@ -71,7 +71,7 @@ do
 
 done < ${NAMES} > ${OUTPUTDIR}/.temp_paths
 
-paste ${NAMES} ${OUTPUTDIR}/.temp_paths > ${OUTPUTDIR}/.temp_manifest
+paste -d $'\t' ${NAMES} ${OUTPUTDIR}/.temp_paths > ${OUTPUTDIR}/.temp_manifest
 
 # START PIPELINE
 
@@ -185,7 +185,7 @@ seqkit stats -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
     sed 's,_assmebly.fasta,,' | \
     sed 's,num_seqs,contigs, ; s,sum_len,assembly_length, ; s,N50,assembly_N50,' > ${OUTPUTDIR}/assembly_stats.tsv
 
-paste ${OUTPUTDIR}/read_stats.tsv \
+paste -d $'\t' ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
     cut -f 1,2,3,4,5,6,8,9,10,11,12,13 > ${OUTPUTDIR}/summary.tsv
