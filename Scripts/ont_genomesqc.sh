@@ -79,7 +79,7 @@ echo 'All specified inputs look good, starting pipeline'
 
 echo 'Computing FASTQ read stats'
 seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths | \
-    cut -f 1,4,6,7,8,13 | \
+    cut -f 1,4,5,6,7,8,13 | \
     sed 's,.fastq.gz,,' | \
     sed 's,num_seqs,reads,' > ${OUTPUTDIR}/.read_stats
 
@@ -212,11 +212,9 @@ seqkit stats -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
 paste -d $'\t' ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
-    cut -f 1,2,3,4,5,6,8,9,10,11,12,13 > ${OUTPUTDIR}/summary.tsv
+    cut -f 1,2,3,4,5,6,7,9,10,11,12,13,14 | \
+    csvtk mutate2 -t  -n mean_coverage -e ' $sum_len / $assembly_length ' > ${OUTPUTDIR}/summary.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
-
-grep 'Mean coverage' ${OUTPUTDIR}/FLYE/*/flye.log | \
-    sed 's,.*FLYE/,, ; s,/flye.log:,, ; s,Mean coverage:\t,,' > ${OUTPUTDIR}/coverage_stats.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
