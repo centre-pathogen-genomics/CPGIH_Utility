@@ -2,13 +2,12 @@
 
 # USAGE: illumina_genomesqc.sh names inputdirectory outputdirectory
 
-set -e
 NAMES=$1
 INPUTDIR=$2
 OUTPUTDIR=$3
 
-# save directory that scripts are running from
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# fail if errors are detected - only using during QC
+set -e
 
 # ensure names file exits
 if [ ! -f ${NAMES} ]
@@ -94,6 +93,9 @@ fi
 # START PIPELINE
 
 echo 'All specified inputs look good, starting pipeline'
+
+# removing error handling behaviour
+set +e
 
 echo 'Computing FASTQ read stats'
 seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \

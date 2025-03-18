@@ -2,10 +2,12 @@
 
 # USAGE: ont_genomesqc.sh names inputdirectory outputdirectory
 
-set -e
 NAMES=$1
 INPUTDIR=$2
 OUTPUTDIR=$3
+
+# fail if errors are detected - only using during QC
+set -e
 
 # ensure names file exits
 if [ ! -f ${NAMES} ]
@@ -76,6 +78,9 @@ paste -d $'\t' ${NAMES} ${OUTPUTDIR}/.temp_paths > ${OUTPUTDIR}/.temp_manifest
 # START PIPELINE
 
 echo 'All specified inputs look good, starting pipeline'
+
+# removing error handling behaviour
+set +e
 
 echo 'Computing FASTQ read stats'
 seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths | \
