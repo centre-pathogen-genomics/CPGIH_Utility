@@ -156,6 +156,8 @@ while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do
 
     echo 'Starting Kraken2 classification of sample' ${i}
+    echo 'Using reads in' ${j} ${k}
+
     kraken2 \
         --use-mpa-style \
         --use-names \
@@ -179,6 +181,8 @@ do
     grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sed 's,.*s__,,' > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
 
     echo 'Starting Spades assembly of sample' ${i}
+    echo 'Using reads in' ${j} ${k}
+    
     spades.py \
         --isolate \
         -1 ${j} \

@@ -141,6 +141,7 @@ while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
 
     echo 'Starting Kraken2 classification of sample' ${i}
+    echo 'Using reads in' ${j}
 
     kraken2 \
         --use-mpa-style \
@@ -163,6 +164,7 @@ do
     grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sed 's,.*s__,,' > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
     
     echo 'Starting Flye assembly of sample' ${i}
+    echo 'Using reads in' ${j}
 
     flye \
         --nano-hq ${j} \
@@ -221,5 +223,4 @@ paste -d $'\t' ${OUTPUTDIR}/read_stats.tsv \
     csvtk mutate2 -t  -n mean_coverage -e ' $sum_len / $assembly_length ' > ${OUTPUTDIR}/summary.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
-
 rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
