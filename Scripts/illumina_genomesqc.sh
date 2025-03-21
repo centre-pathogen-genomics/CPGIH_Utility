@@ -161,7 +161,6 @@ do
     kraken2 \
         --use-mpa-style \
         --use-names \
-        --confidence 0.1 \
         --threads 20 \
         --paired \
         --output ${OUTPUTDIR}/KRAKEN/${i}_output.tsv \
