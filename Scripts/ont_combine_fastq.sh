@@ -33,7 +33,7 @@ else
 fi
 
 # CONFIRM THAT RENAMING FILE EXISTS
-if [! -f ${RENAMING} ]
+if [ ! -f ${RENAMING} ]
 then
 
     echo "Renaming File Does Not Exist"
@@ -79,7 +79,7 @@ do
 
     FILECOUNT=$( ls -1 ${INDIR}/${i}/ | wc -l )
 
-    if [ ${FILECOUNT} == 1 ]
+    if [ ${FILECOUNT} -eq 1 ]
     then
 
         echo "One FASTQ For Sample" ${i} "No Concatentation Needed. Just Renaming (" ${j} ")"
@@ -100,7 +100,7 @@ do
 
         echo "Concatenating" ${FILECOUNT} "FASTQ From" ${i} "And Renaming (" ${j} ")"
 
-        if [ ${OUTFORMAT} == "file" ]
+        if [[ ${OUTFORMAT} == "file" ]]
         then
 
             pigz -cd -p 10 ${INDIR}/${i}/*.fastq.gz | pigz -p 10 > ${OUTDIR}/${j}.fastq.gz
