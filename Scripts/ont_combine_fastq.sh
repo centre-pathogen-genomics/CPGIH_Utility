@@ -46,7 +46,7 @@ else
 fi
 
 # CONFIRM THAT OUTPUT FORMAT IS SPECIFIED AND VALID
-if [ -z $4 ]
+if [ -n "$4" ]
 then
 
     OUTFORMAT=$4
