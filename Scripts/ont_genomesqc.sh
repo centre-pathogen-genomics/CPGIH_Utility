@@ -175,16 +175,18 @@ do
 done < ${OUTPUTDIR}/.temp_manifest_filtered
 
 # summarising kraken2 species results
-echo -e "species1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
+echo -e "file\tspecies1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
 # Loop through each report file
 for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
-    awk -F'\t' '
+    sample=$(basename "$file" _report_species.tsv)
+    awk -v sample="$sample" -F'\t' '
         {
             sum += $2
             data[NR] = $1
             counts[NR] = $2
         }
         END {
+        line = sample
             if (sum == 0) {
                 # If total sum is zero, output NA (0.00%) for all columns
                 print "NA (0.00%)\tNA (0.00%)\tNA (0.00%)"
@@ -203,7 +205,7 @@ for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
                     }
                     if (e < 3) printf "\t"
                 }
-                print ""
+                print line
             }
         }
     ' "$file" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
@@ -212,7 +214,7 @@ done
 echo 'Computing assembly stats'
 seqkit stats -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
     cut -f 1,4,5,13 | \
-    sed 's,_assmebly.fasta,,' | \
+    sed 's,_assembly.fasta,,' | \
     sed 's,num_seqs,contigs, ; s,sum_len,assembly_length, ; s,N50,assembly_N50,' > ${OUTPUTDIR}/assembly_stats.tsv
 
 paste -d $'\t' ${OUTPUTDIR}/read_stats.tsv \
