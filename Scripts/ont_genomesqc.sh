@@ -177,38 +177,43 @@ done < ${OUTPUTDIR}/.temp_manifest_filtered
 # summarising kraken2 species results
 echo -e "file\tspecies1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
 # Loop through each report file
-for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
+for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv
+do
+
     sample=$(basename "$file" _report_species.tsv)
+
     awk -v sample="$sample" -F'\t' '
         {
+
             sum += $2
             data[NR] = $1
             counts[NR] = $2
+
         }
         END {
-        line = sample
-            if (sum == 0) {
-                # If total sum is zero, output NA (0.00%) for all columns
-                print "NA (0.00%)\tNA (0.00%)\tNA (0.00%)"
+        output = sample
+        if (sum == 0) {
+        
+            output = output "\tNA (0.00%)\tNA (0.00%)\tNA (0.00%)"
+            
             } else {
-                # Sort indexes based on counts
+
                 n = asort(counts, sorted_counts, "@val_num_desc")
 
-                # Create formatted output with up to 3 species
                 for (e = 1; e <= 3; e++) {
                     if (e <= n) {
                         species_name = data[e]
                         percent = (counts[e] / sum) * 100
-                        printf "%s (%.2f%%)", species_name, percent
+                        output = output sprintf("\t%s (%.2f%%)", species_name, percent)
                     } else {
-                        printf "NA (0.00%%)"
+                        output = output "\tNA (0.00%)"
                     }
-                    if (e < 3) printf "\t"
                 }
-                print line
             }
+            print output
         }
     ' "$file" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
+
 done
 
 echo 'Computing assembly stats'
