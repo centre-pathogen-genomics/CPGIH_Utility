@@ -238,7 +238,7 @@ seqkit stats -abT ${OUTPUTDIR}/SPADES/*_contigs.fa | \
     sed 's,_contigs.fa,,' | \
     sed 's,num_seqs,contigs, ; s,sum_len,assembly_length, ; s,N50,assembly_N50,' > ${OUTPUTDIR}/assembly_stats.tsv
 
-paste -d $'\t' ${OUTPUTDIR}/read_stats.tsv \
+csvtk join -t --left-join -f file ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
     cut -f 1,2,3,4,5,6,7,9,10,11,12,13,14 | \

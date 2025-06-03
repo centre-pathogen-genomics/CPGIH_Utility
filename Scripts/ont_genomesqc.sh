@@ -222,10 +222,9 @@ seqkit stats -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
     sed 's,_assembly.fasta,,' | \
     sed 's,num_seqs,contigs, ; s,sum_len,assembly_length, ; s,N50,assembly_N50,' > ${OUTPUTDIR}/assembly_stats.tsv
 
-paste -d $'\t' ${OUTPUTDIR}/read_stats.tsv \
+csvtk join -t --left-join -f file ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
-    cut -f 1,2,3,4,5,6,7,9,10,11,12,13,14 | \
     csvtk mutate2 -t  -n mean_coverage -e ' $sum_len / $assembly_length ' > ${OUTPUTDIR}/summary.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
