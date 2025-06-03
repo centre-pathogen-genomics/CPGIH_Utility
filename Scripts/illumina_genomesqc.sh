@@ -201,7 +201,7 @@ done < ${OUTPUTDIR}/.temp_manifest_filtered
 echo -e "species1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
 # Loop through each report file
 for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
-    awk -F'\t' '
+    gawk -F'\t' '
         {
             sum += $2
             data[NR] = $1

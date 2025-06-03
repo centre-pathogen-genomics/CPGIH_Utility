@@ -182,7 +182,7 @@ do
 
     sample=$(basename "$file" _report_species.tsv)
 
-    awk -v sample="$sample" -F'\t' '
+    gawk -v sample="$sample" -F'\t' '
         {
 
             sum += $2
