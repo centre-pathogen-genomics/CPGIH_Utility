@@ -2,13 +2,15 @@
 
 # USAGE: ont_qcemu.sh names inputdirectory outputdirectory
 
-set -e
 NAMES=$1
 INPUTDIR=$2
 OUTPUTDIR=$3
 
 MINLEN=1400
 MAXLEN=1700
+
+# fail if errors are detected - only using during QC
+set -e
 
 # ensure names file exits
 if [ ! -f ${NAMES} ]
@@ -77,6 +79,9 @@ done < ${NAMES} > ${OUTPUTDIR}/.paths
 
 paste -d $'\t' ${NAMES} ${OUTPUTDIR}/.paths > ${OUTPUTDIR}/.manifest.tsv
 rm -f ${OUTPUTDIR}/.paths
+
+# removing error handling behaviour
+set +e
 
 # START PIPELINE
 
