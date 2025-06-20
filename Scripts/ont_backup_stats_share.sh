@@ -188,23 +188,23 @@ fi
 SAMPLECOUNT=$(ls -d * | wc -l)
 echo "$SAMPLECOUNT" "Samples Found"
     
-while IFS= read -r i j || [[ -n "$i" ]] 
+while IFS=$'\t' read -r i j || [[ -n ${i} ]] 
 do
 
-    FILECOUNT=$(ls -1 "$i"/ | wc -l)
+    FILECOUNT=$(ls -1 ${i}/ | wc -l)
 
     if [ $FILECOUNT = 1 ]
     then
 
-        echo "One FASTQ For Sample" "$i" "No Concatentation Needed. Just Renaming."
-        mv "$i"/*"$i"*.fastq.gz "$j".fastq.gz
-	    rmdir "$i"
+        echo "One FASTQ For Sample" ${i} "No Concatentation Needed. Just Renaming."
+        mv ${i}/*${i}*.fastq.gz ${j}.fastq.gz
+	    rmdir ${i}
 
     else
 
-        echo "Concatenating" "$FILECOUNT" "FASTQ From" "$i" "And Renaming."
-        pigz -cd -p 10 "$i"/*.fastq.gz | pigz -p 10 > "$j".fastq.gz
-	    rm -rf "$i"
+        echo "Concatenating" "$FILECOUNT" "FASTQ From" ${i} "And Renaming."
+        pigz -cd -p 10 ${i}/*.fastq.gz | pigz -p 10 > ${j}.fastq.gz
+	    rm -rf ${i}
 
     fi
 
