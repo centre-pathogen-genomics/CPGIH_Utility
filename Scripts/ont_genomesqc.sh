@@ -230,3 +230,20 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
 rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
+
+# print information about empty reads sets
+if [ "$SAMPLESREMOVED" -gt 0 ]
+then
+
+    echo ''
+    echo 'The following samples were not analysed due to empty read sets:'
+    cat ${OUTPUTDIR}/.emptysamples
+    echo ''
+
+else
+
+    echo ''
+    echo 'All sample read sets are non-empty, all were retained for analysis'
+    echo ''
+
+fi > emptysamples.info

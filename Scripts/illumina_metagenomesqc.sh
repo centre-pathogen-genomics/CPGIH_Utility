@@ -154,8 +154,20 @@ mkdir -p ${OUTPUTDIR}/KRAKEN/
 while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do
 
+    echo 'Starting host decontamination of sample' ${i}
+    
+    # take host name from input file
+    # human, mouse, none
+    hostile clean \
+        --fastq1 ${j} \
+        --fastq2 ${k} \
+        --aligner bowtie2 \
+        --index /home/cwwalsh/Databases/Hostile/
+
+    # make new temp manifest file with names of de-hostified read files
+    # fix input fastq reads for kraken2
+    
     echo 'Starting Kraken2 classification of sample' ${i}
-    echo 'Using reads in' ${j} ${k}
 
     kraken2 \
         --use-mpa-style \
@@ -164,8 +176,8 @@ do
         --paired \
         --output ${OUTPUTDIR}/KRAKEN/${i}_output.tsv \
         --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
-        ${j} \
-        ${k}
+        ${j} \ 
+        ${k} 
 
     rm -f ${OUTPUTDIR}/KRAKEN/${i}_output.tsv
 
