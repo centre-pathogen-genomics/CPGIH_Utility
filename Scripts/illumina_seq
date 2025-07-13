@@ -1,0 +1,37 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    echo "Must pass a run name. Usage: illumnia_seq [RUN_NAME]"
+    exit 1
+fi
+
+# The directory where scripts are stored
+SCRIPT_DIR=$BRIDGE_SCRIPT_DIR
+# The directory where sequence run subdirectories are installed
+WORKING_DIR=$BRIDGE_WORKING_DIR
+
+ILLUMNIA_SCRIPT="$SCRIPT_DIR/illumina_genomesqc.sh"
+NAME_DIR="$WORKING_DIR/share_file_templates"
+NAME_FILE="$NAME_DIR/names"
+RUN_NAME="$1"
+RUN_DIR="$WORKING_DIR/$RUN_NAME"
+QC_DIR="$RUN_DIR/qc"
+
+if [ ! -d $SCRIPT_DIR ]; then
+    echo "Directory $SCRIPT_DIR does not exist."
+    exit 1
+fi
+
+if [ ! -d $WORKING_DIR ]; then
+    echo "Directory $WORKING_DIR does not exist."
+    exit 1
+fi
+
+if [ ! -d $RUN_DIR ]; then
+    echo "Directory $RUN_DIR does not exist."
+    exit 1
+fi
+
+dos2unix $NAME_FILE
+bash $ILLUMNIA_SCRIPT $NAME_FILE $RUN_DIR $QC_DIR
+
