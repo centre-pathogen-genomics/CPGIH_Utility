@@ -221,12 +221,13 @@ do
             
             } else {
 
-                n = asort(counts, sorted_counts, "@val_num_desc")
+                n = asorti(counts, idx, "@val_num_desc")
 
                 for (e = 1; e <= 3; e++) {
                     if (e <= n) {
-                        species_name = data[e]
-                        percent = (counts[e] / sum) * 100
+                        orig = idx[e]
+                        species_name = data[orig]
+                        percent = (counts[orig] / sum) * 100
                         output = output sprintf("\t%s (%.2f%%)", species_name, percent)
                     } else {
                         output = output "\tNA (0.00%)"
