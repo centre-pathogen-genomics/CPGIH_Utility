@@ -155,6 +155,21 @@ mkdir -p ${OUTPUTDIR}/SPADES/
 while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do
 
+    echo 'Starting fastp processing of sample' ${i}
+    echo 'Using reads in' ${j} ${k}
+
+    fastp \
+        --in1 ${j} \
+        --in2 ${k} \
+        --out1 FASTP/"$i"_R1_paired.fastq.gz \
+        --out2 FASTP/"$i"_R2_paired.fastq.gz \
+        --detect_adapter_for_pe \
+        --length_required 50 \
+        --thread 20 \
+        --html FASTP/"$i"_fastp.html \
+        --json FASTP/"$i"_fastp.json
+
+    
     echo 'Starting Kraken2 classification of sample' ${i}
     echo 'Using reads in' ${j} ${k}
 
@@ -165,8 +180,8 @@ do
         --paired \
         --output ${OUTPUTDIR}/KRAKEN/${i}_output.tsv \
         --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
-        ${j} \
-        ${k}
+        FASTP/"$i"_R1_paired.fastq.gz \
+        FASTP/"$i"_R2_paired.fastq.gz
 
     rm -f ${OUTPUTDIR}/KRAKEN/${i}_output.tsv
 
@@ -184,8 +199,8 @@ do
     
     spades.py \
         --isolate \
-        -1 ${j} \
-        -2 ${k} \
+        -1 FASTP/"$i"_R1_paired.fastq.gz \
+        -2 FASTP/"$i"_R2_paired.fastq.gz \
         -o ${OUTPUTDIR}/SPADES/${i}/ \
         -t 20
 
