@@ -184,40 +184,35 @@ do
     
     # take host name from input 
     # human, mouse, none
-    if [[ "$HOST" = 'human' ]] 
-    then
+    if [[ "$HOST" = 'human' ]] ; then
         
-        echo "Removing" $HOST "Data From Sample" $i
+        echo "Removing $HOST Data From Sample $i"
         
         hostile clean \
             --fastq1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
-            --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz\
+            --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
             --aligner bowtie2 \
             --index /home/cwwalsh/Databases/Hostile/human-t2t-hla-argos985-mycob140 \
-            --output "$OUTDIR"/FASTQ/ \
+            --output "$OUTDIR"/FASTP/ \
             --threads 20
 
-        elif [[ "$HOST" = 'mouse' ]]
+    elif [[ "$HOST" = 'mouse' ]]; then
 
         hostile clean \
             --fastq1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
-            --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz\
+            --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
             --aligner bowtie2 \
             --index /home/cwwalsh/Databases/Hostile/mouse-mm39 \
             --output "$OUTDIR"/FASTP/ \
             --threads 20
         
-        else
+    else
 
-            echo 'Skipping host removal'
-            ln -s ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz
-            ln -s ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
+        echo 'Skipping host removal'
+        ln -s ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz
+        ln -s ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
         
-        fi
-
-
-    # make new temp manifest file with names of de-hostified read files
-    # fix input fastq reads for kraken2
+    fi
     
     echo 'Starting Kraken2 classification of sample' ${i}
 
@@ -230,6 +225,8 @@ do
         --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
         ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz \
         ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
+
+    # bracken
 
 done < ${OUTPUTDIR}/.temp_manifest_filtered
 
