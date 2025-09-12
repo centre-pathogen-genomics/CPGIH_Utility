@@ -149,6 +149,7 @@ else
 
 fi
     
+mkdir -p ${OUTPUTDIR}/FASTP/
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/SPADES/
 
@@ -161,13 +162,13 @@ do
     fastp \
         --in1 ${j} \
         --in2 ${k} \
-        --out1 FASTP/"$i"_R1_paired.fastq.gz \
-        --out2 FASTP/"$i"_R2_paired.fastq.gz \
+        --out1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
+        --out2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
         --detect_adapter_for_pe \
         --length_required 50 \
         --thread 20 \
-        --html FASTP/"$i"_fastp.html \
-        --json FASTP/"$i"_fastp.json
+        --html ${OUTPUTDIR}/FASTP/"$i"_fastp.html \
+        --json ${OUTPUTDIR}/FASTP/"$i"_fastp.json
 
     
     echo 'Starting Kraken2 classification of sample' ${i}
@@ -178,12 +179,10 @@ do
         --use-names \
         --threads 20 \
         --paired \
-        --output ${OUTPUTDIR}/KRAKEN/${i}_output.tsv \
+        --output /dev/null \
         --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
-        FASTP/"$i"_R1_paired.fastq.gz \
-        FASTP/"$i"_R2_paired.fastq.gz
-
-    rm -f ${OUTPUTDIR}/KRAKEN/${i}_output.tsv
+        ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
+        ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz
 
     # pull out the 10 most abundant species from the report
     awk -F'\t' '$1 ~ /s__/ {gsub(/^ +| +$/, "", $0); print $0}' \
@@ -199,8 +198,8 @@ do
     
     spades.py \
         --isolate \
-        -1 FASTP/"$i"_R1_paired.fastq.gz \
-        -2 FASTP/"$i"_R2_paired.fastq.gz \
+        -1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
+        -2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
         -o ${OUTPUTDIR}/SPADES/${i}/ \
         -t 20
 

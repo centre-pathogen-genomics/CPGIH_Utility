@@ -147,11 +147,9 @@ do
         --use-mpa-style \
         --use-names \
         --threads 20 \
-        --output ${OUTPUTDIR}/KRAKEN/${i}_output.tsv \
+        --output /dev/null \
         --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
         ${j}
-
-    rm -f ${OUTPUTDIR}/KRAKEN/${i}_output.tsv
 
     # pull out the 10 most abundant species from the report
     awk -F'\t' '$1 ~ /s__/ {gsub(/^ +| +$/, "", $0); print $0}' \

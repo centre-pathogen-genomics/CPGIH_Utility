@@ -5,6 +5,7 @@
 NAMES=$1
 INPUTDIR=$2
 OUTPUTDIR=$3
+HOST=$4
 
 # fail if errors are detected - only using during QC
 set -e
@@ -39,6 +40,18 @@ then
 
     echo 'Creating output directory' ${OUTPUTDIR}
     mkdir -p ${OUTPUTDIR}/
+
+fi
+
+# ensure host name is set correctly
+if [[ "$HOST" = 'human' ]] || [[ "$HOST" = 'mouse' ]]
+then
+
+    echo "Host Specified:" $HOST
+
+    else
+
+    echo "Valid host not specified, skipping decontamination step"
 
 fi
 
@@ -149,20 +162,60 @@ else
 
 fi
     
+mkdir -p ${OUTPUTDIR}/FASTP/
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 
 while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do
 
-    echo 'Starting host decontamination of sample' ${i}
+    echo 'Starting fastp processing of sample' ${i}
+    echo 'Using reads in' ${j} ${k}
+
+    fastp \
+        --in1 ${j} \
+        --in2 ${k} \
+        --out1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
+        --out2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
+        --detect_adapter_for_pe \
+        --length_required 50 \
+        --thread 20 \
+        --html ${OUTPUTDIR}/FASTP/"$i"_fastp.html \
+        --json ${OUTPUTDIR}/FASTP/"$i"_fastp.json
+        
     
-    # take host name from input file
+    # take host name from input 
     # human, mouse, none
-    hostile clean \
-        --fastq1 ${j} \
-        --fastq2 ${k} \
-        --aligner bowtie2 \
-        --index /home/cwwalsh/Databases/Hostile/
+    if [[ "$HOST" = 'human' ]] 
+    then
+        
+        echo "Removing" $HOST "Data From Sample" $i
+        
+        hostile clean \
+            --fastq1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
+            --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz\
+            --aligner bowtie2 \
+            --index /home/cwwalsh/Databases/Hostile/human-t2t-hla-argos985-mycob140 \
+            --output "$OUTDIR"/FASTQ/ \
+            --threads 20
+
+        elif [[ "$HOST" = 'mouse' ]]
+
+        hostile clean \
+            --fastq1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
+            --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz\
+            --aligner bowtie2 \
+            --index /home/cwwalsh/Databases/Hostile/mouse-mm39 \
+            --output "$OUTDIR"/FASTP/ \
+            --threads 20
+        
+        else
+
+            echo 'Skipping host removal'
+            ln -s ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz
+            ln -s ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
+        
+        fi
+
 
     # make new temp manifest file with names of de-hostified read files
     # fix input fastq reads for kraken2
@@ -174,62 +227,11 @@ do
         --use-names \
         --threads 20 \
         --paired \
-        --output ${OUTPUTDIR}/KRAKEN/${i}_output.tsv \
+        --output /dev/null \
         --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
-        ${j} \ 
-        ${k} 
-
-    rm -f ${OUTPUTDIR}/KRAKEN/${i}_output.tsv
-
-    # pull out the 10 most abundant species from the report
-    awk -F'\t' '$1 ~ /s__/ {gsub(/^ +| +$/, "", $0); print $0}' \
-        ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | \
-            sort -t$'\t' -k2,2nr | \
-                head -n 10 > ${OUTPUTDIR}/KRAKEN/${i}_report_top10species.tsv
-
-    # extract species counts from report - will use these after loop in summary output
-    grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sed 's,.*s__,,' > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
+        ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz \
+        ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
 
 done < ${OUTPUTDIR}/.temp_manifest_filtered
-
-# summarising kraken2 species results
-echo -e "species1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
-# Loop through each report file
-for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv; do
-    gawk -F'\t' '
-        {
-            sum += $2
-            data[NR] = $1
-            counts[NR] = $2
-        }
-        END {
-            if (sum == 0) {
-                # If total sum is zero, output NA (0.00%) for all columns
-                print "NA (0.00%)\tNA (0.00%)\tNA (0.00%)"
-            } else {
-                # Sort indexes based on counts
-                n = asort(counts, sorted_counts, "@val_num_desc")
-
-                # Create formatted output with up to 3 species
-                for (e = 1; e <= 3; e++) {
-                    if (e <= n) {
-                        species_name = data[e]
-                        percent = (counts[e] / sum) * 100
-                        printf "%s (%.2f%%)", species_name, percent
-                    } else {
-                        printf "NA (0.00%%)"
-                    }
-                    if (e < 3) printf "\t"
-                }
-                print ""
-            }
-        }
-    ' "$file" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
-done
-
-csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
-    ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
-    csvtk mutate2 -t  -n mean_coverage -e ' $sum_len / $assembly_length ' | \
-    sed 's,+Inf,NA,'> ${OUTPUTDIR}/summary.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
