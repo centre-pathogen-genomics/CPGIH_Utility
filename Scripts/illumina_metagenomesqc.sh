@@ -193,7 +193,7 @@ do
             --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
             --aligner bowtie2 \
             --index /home/cwwalsh/Databases/Hostile/human-t2t-hla-argos985-mycob140 \
-            --output "$OUTDIR"/FASTP/ \
+            --output "$OUTPUTDIR"/FASTP/ \
             --threads 20
 
     elif [[ "$HOST" = 'mouse' ]]; then
