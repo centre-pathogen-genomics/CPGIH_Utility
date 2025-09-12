@@ -181,7 +181,6 @@ do
         --thread 20 \
         --html ${OUTPUTDIR}/FASTP/"$i"_fastp.html \
         --json ${OUTPUTDIR}/FASTP/"$i"_fastp.json
-        
     
     # take host name from input 
     # human, mouse, none
