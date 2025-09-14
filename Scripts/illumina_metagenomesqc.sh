@@ -217,7 +217,7 @@ do
     echo 'Starting Kraken2 classification of sample' ${i}
 
     kraken2 \
-        --use-mpa-style \
+        --db /home/mdu/resources/kraken2/pluspf \
         --use-names \
         --threads 20 \
         --paired \
@@ -226,8 +226,20 @@ do
         ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz \
         ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
 
+    echo 'Starting Bracken profiling of sample' ${i}
+
     # bracken
+    bracken \
+        -d /home/mdu/resources/kraken2/pluspf \
+        -i ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
+        -o /dev/null \
+        -w ${OUTPUTDIR}/KRAKEN/${i}_brackenreport.tsv \
+        -r 150
 
 done < ${OUTPUTDIR}/.temp_manifest_filtered
+
+combine_bracken_outputs.py \
+    --files ${OUTPUTDIR}/KRAKEN/*_brackenreport.tsv \
+    -o ${OUTPUTDIR}/KRAKEN/bracken_combined.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
