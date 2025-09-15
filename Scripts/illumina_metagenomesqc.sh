@@ -228,7 +228,6 @@ do
 
     echo 'Starting Bracken profiling of sample' ${i}
 
-    # bracken
     bracken \
         -d /home/mdu/resources/kraken2/pluspf \
         -i ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
