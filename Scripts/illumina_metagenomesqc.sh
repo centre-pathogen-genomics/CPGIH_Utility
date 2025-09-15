@@ -231,14 +231,14 @@ do
     bracken \
         -d /home/mdu/resources/kraken2/pluspf \
         -i ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
-        -o /dev/null \
+        -o ${OUTPUTDIR}/KRAKEN/${i}_brackenout.tsv \
         -w ${OUTPUTDIR}/KRAKEN/${i}_brackenreport.tsv \
         -r 150
 
 done < ${OUTPUTDIR}/.temp_manifest_filtered
 
 combine_bracken_outputs.py \
-    --files ${OUTPUTDIR}/KRAKEN/*_brackenreport.tsv \
+    --files ${OUTPUTDIR}/KRAKEN/*_brackenout.tsv \
     -o ${OUTPUTDIR}/KRAKEN/bracken_combined.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
