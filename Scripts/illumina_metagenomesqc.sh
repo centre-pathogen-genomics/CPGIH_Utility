@@ -212,6 +212,8 @@ do
         cp ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
         
     fi
+
+    rm -f ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz
     
     echo 'Starting Kraken2 classification of sample' ${i}
 
