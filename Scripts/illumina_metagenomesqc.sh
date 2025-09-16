@@ -208,8 +208,8 @@ do
     else
 
         echo 'Skipping host removal'
-        ln -s ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz
-        ln -s ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
+        cp ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz
+        cp ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
         
     fi
     
