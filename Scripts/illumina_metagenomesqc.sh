@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# USAGE: illumina_metagenomesqc.sh names inputdirectory outputdirectory
+# USAGE: illumina_metagenomesqc.sh names inputdirectory outputdirectory host
 
 NAMES=$1
 INPUTDIR=$2
@@ -29,7 +29,7 @@ then
 fi
 
 # ensure output directory doesn't exist
-# if it doesn't, create it
+# if it doesn't, create it and all subdirectories
 if [ -d ${OUTPUTDIR} ]
 then
 
@@ -39,7 +39,8 @@ then
     else
 
     echo 'Creating output directory' ${OUTPUTDIR}
-    mkdir -p ${OUTPUTDIR}/
+    mkdir -p ${OUTPUTDIR}/FASTP/
+    mkdir -p ${OUTPUTDIR}/KRAKEN/
 
 fi
 
@@ -162,9 +163,7 @@ else
 
 fi
     
-mkdir -p ${OUTPUTDIR}/FASTP/
-mkdir -p ${OUTPUTDIR}/KRAKEN/
-
+# run qc
 while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do
 
