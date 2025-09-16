@@ -240,6 +240,6 @@ done < ${OUTPUTDIR}/.temp_manifest_filtered
 
 combine_bracken_outputs.py \
     --files ${OUTPUTDIR}/KRAKEN/*_brackenout.tsv \
-    -o ${OUTPUTDIR}/KRAKEN/bracken_combined.tsv
+    -o ${OUTPUTDIR}/bracken_combined.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
