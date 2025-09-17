@@ -219,6 +219,7 @@ do
 
     kraken2 \
         --db /home/mdu/resources/kraken2/pluspf \
+        --confidence 0.1 \
         --use-names \
         --threads 20 \
         --paired \
