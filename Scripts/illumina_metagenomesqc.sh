@@ -45,7 +45,7 @@ then
 fi
 
 # ensure host name is set correctly
-if [[ "$HOST" = 'human' ]] || [[ "$HOST" = 'mouse' ]]
+if [[ "$HOST" = "human" ]] || [[ "$HOST" = "mouse" ]]
 then
 
     echo "Host Specified:" $HOST
@@ -195,7 +195,7 @@ while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do    
     # take host name from input 
     # human, mouse, none
-    if [[ "$HOST" = 'human' ]] ; then
+    if [[ "$HOST" = "human" ]] ; then
         
         echo "Removing $HOST Data From Sample $i"
         
@@ -207,7 +207,7 @@ do
             --output "$OUTPUTDIR"/FASTP/ \
             --threads 20
 
-    elif [[ "$HOST" = 'mouse' ]]; then
+    elif [[ "$HOST" = "mouse" ]]; then
 
         hostile clean \
             --fastq1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
@@ -230,8 +230,7 @@ do
 done < ${OUTPUTDIR}/.temp_manifest_filtered
 
 # calculate read stats for dehostified data
-if [[ "$HOST" = 'human' ]] | [[ "$HOST" = 'mouse' ]]
-then
+if [[ "$HOST" = "human" || "$HOST" = "mouse" ]]; then
 
     echo 'Computing dehostified (not a word) FASTQ read stats'
     seqkit stats -abT ${OUTPUTDIR}/FASTP/*_R1_paired.clean_1.fastq.gz | \
@@ -273,24 +272,23 @@ combine_bracken_outputs.py \
     --files ${OUTPUTDIR}/KRAKEN/*_brackenout.tsv \
     -o ${OUTPUTDIR}/bracken_combined.tsv
 
-if [[ "$HOST" = 'human' ]] | [[ "$HOST" = 'mouse' ]] ; then
+if [[ "$HOST" = "human" ]] || [[ "$HOST" = "mouse" ]]
+then
 
     csvtk join \
         -t --left-join --na 0 \
-        -f file read_stats_raw.tsv read_stats_trimmed.tsv read_stats_dehostified.tsv | \
+        -f file ${OUTPUTDIR}/read_stats_raw.tsv ${OUTPUTDIR}/read_stats_trimmed.tsv ${OUTPUTDIR}/read_stats_dehostified.tsv | \
         csvtk cut -t -f file,readpairs_raw,readpairs_trimmed,readpairs_dehostified > \
-        read_stats_combined.tsv
+        ${OUTPUTDIR}/read_stats_combined.tsv
 
     else
 
     csvtk join \
         -t --left-join --na 0 \
-        -f file read_stats_raw.tsv read_stats_trimmed.tsv | \
+        -f file ${OUTPUTDIR}/read_stats_raw.tsv ${OUTPUTDIR}/read_stats_trimmed.tsv | \
         csvtk cut -t -f file,readpairs_raw,readpairs_trimmed > \
-        read_stats_combined.tsv
+        ${OUTPUTDIR}/read_stats_combined.tsv
 
 fi
-
-
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
