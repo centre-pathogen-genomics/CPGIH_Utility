@@ -230,7 +230,7 @@ do
 done < ${OUTPUTDIR}/.temp_manifest_filtered
 
 # calculate read stats for dehostified data
-if [[ "$HOST" = 'human' ]]
+if [[ "$HOST" = 'human' ]] | [[ "$HOST" = 'mouse' ]]
 then
 
     echo 'Computing dehostified (not a word) FASTQ read stats'
@@ -272,5 +272,25 @@ done < ${OUTPUTDIR}/.temp_manifest_filtered
 combine_bracken_outputs.py \
     --files ${OUTPUTDIR}/KRAKEN/*_brackenout.tsv \
     -o ${OUTPUTDIR}/bracken_combined.tsv
+
+if [[ "$HOST" = 'human' ]] | [[ "$HOST" = 'mouse' ]] ; then
+
+    csvtk join \
+        -t --left-join --na 0 \
+        -f file read_stats_raw.tsv read_stats_trimmed.tsv read_stats_dehostified.tsv | \
+        csvtk cut -t -f file,readpairs_raw,readpairs_trimmed,readpairs_dehostified > \
+        read_stats_combined.tsv
+
+    else
+
+    csvtk join \
+        -t --left-join --na 0 \
+        -f file read_stats_raw.tsv read_stats_trimmed.tsv | \
+        csvtk cut -t -f file,readpairs_raw,readpairs_trimmed > \
+        read_stats_combined.tsv
+
+fi
+
+
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
