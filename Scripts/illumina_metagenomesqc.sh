@@ -185,7 +185,7 @@ done < ${OUTPUTDIR}/.temp_manifest_filtered
 
 # calculate read stats for trimmed data
 echo 'Computing trimmed FASTQ read stats'
-seqkit stats -abT ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz | \
+seqkit stats -abT ${OUTPUTDIR}/FASTP/*_R1_paired.fastq.gz | \
     cut -f 1,4,5,6,7,8,13 | \
     sed 's,_S.*.fastq.gz,,' | \
     sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats_trimmed.tsv
@@ -234,7 +234,7 @@ if [[ "$HOST" = 'human' ]]
 then
 
     echo 'Computing dehostified (not a word) FASTQ read stats'
-    seqkit stats -abT ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz | \
+    seqkit stats -abT ${OUTPUTDIR}/FASTP/*_R1_paired.clean_1.fastq.gz | \
         cut -f 1,4,5,6,7,8,13 | \
         sed 's,_S.*.fastq.gz,,' | \
         sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats_dehostified.tsv
