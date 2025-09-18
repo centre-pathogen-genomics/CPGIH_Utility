@@ -115,7 +115,7 @@ echo 'Computing raw FASTQ read stats'
 seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
     cut -f 1,4,5,6,7,8,13 | \
     sed 's,_S.*.fastq.gz,,' | \
-    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/.read_stats_raw
+    sed 's,num_seqs,readpairs_raw,' > ${OUTPUTDIR}/.read_stats_raw
 
 # identify empty read sets and remove from analysis loop
 awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats_raw | cut -f 1 > ${OUTPUTDIR}/.emptysamples
@@ -188,7 +188,7 @@ echo 'Computing trimmed FASTQ read stats'
 seqkit stats -abT ${OUTPUTDIR}/FASTP/*_R1_paired.fastq.gz | \
     cut -f 1,4,5,6,7,8,13 | \
     sed 's,_S.*.fastq.gz,,' | \
-    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats_trimmed.tsv
+    sed 's,num_seqs,readpairs_trimmed,' > ${OUTPUTDIR}/read_stats_trimmed.tsv
 
 # run hostile
 while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
@@ -237,7 +237,7 @@ then
     seqkit stats -abT ${OUTPUTDIR}/FASTP/*_R1_paired.clean_1.fastq.gz | \
         cut -f 1,4,5,6,7,8,13 | \
         sed 's,_S.*.fastq.gz,,' | \
-        sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats_dehostified.tsv
+        sed 's,num_seqs,readpairs_dehostified,' > ${OUTPUTDIR}/read_stats_dehostified.tsv
 
 fi
 
