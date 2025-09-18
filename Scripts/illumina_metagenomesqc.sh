@@ -111,14 +111,14 @@ echo 'All specified inputs look good, starting pipeline'
 # removing error handling behaviour
 set +e
 
-echo 'Computing FASTQ read stats'
+echo 'Computing raw FASTQ read stats'
 seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
     cut -f 1,4,5,6,7,8,13 | \
     sed 's,_S.*.fastq.gz,,' | \
-    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/.read_stats
+    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/.read_stats_raw
 
 # identify empty read sets and remove from analysis loop
-awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats | cut -f 1 > ${OUTPUTDIR}/.emptysamples
+awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats_raw | cut -f 1 > ${OUTPUTDIR}/.emptysamples
 
 if [ -s ${OUTPUTDIR}/.emptysamples ]
 then
@@ -137,11 +137,11 @@ if [ -s ${OUTPUTDIR}/.emptysamples ]
 then
 
     awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
-        ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
+        ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats_raw > ${OUTPUTDIR}/read_stats_raw.tsv
 
 else
 
-    cp ${OUTPUTDIR}/.read_stats ${OUTPUTDIR}/read_stats.tsv
+    cp ${OUTPUTDIR}/.read_stats_raw ${OUTPUTDIR}/read_stats_raw.tsv
 
 fi
 
@@ -163,7 +163,7 @@ else
 
 fi
     
-# run qc
+# run fastp
 while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do
 
@@ -180,7 +180,19 @@ do
         --thread 20 \
         --html ${OUTPUTDIR}/FASTP/"$i"_fastp.html \
         --json ${OUTPUTDIR}/FASTP/"$i"_fastp.json
-    
+
+done < ${OUTPUTDIR}/.temp_manifest_filtered
+
+# calculate read stats for trimmed data
+echo 'Computing trimmed FASTQ read stats'
+seqkit stats -abT ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz | \
+    cut -f 1,4,5,6,7,8,13 | \
+    sed 's,_S.*.fastq.gz,,' | \
+    sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats_trimmed.tsv
+
+# run hostile
+while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
+do    
     # take host name from input 
     # human, mouse, none
     if [[ "$HOST" = 'human' ]] ; then
@@ -214,6 +226,24 @@ do
     fi
 
     rm -f ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz
+
+done < ${OUTPUTDIR}/.temp_manifest_filtered
+
+# calculate read stats for dehostified data
+if [[ "$HOST" = 'human' ]]
+then
+
+    echo 'Computing dehostified (not a word) FASTQ read stats'
+    seqkit stats -abT ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz | \
+        cut -f 1,4,5,6,7,8,13 | \
+        sed 's,_S.*.fastq.gz,,' | \
+        sed 's,num_seqs,readpairs,' > ${OUTPUTDIR}/read_stats_dehostified.tsv
+
+fi
+
+# run kraken2 and bracken
+while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
+do
     
     echo 'Starting Kraken2 classification of sample' ${i}
 
