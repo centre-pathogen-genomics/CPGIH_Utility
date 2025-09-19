@@ -30,7 +30,7 @@ fi
 
 # ensure output directory doesn't exist
 # if it doesn't, create it and all subdirectories
-if [ -d ${OUTPUTDIR} ]
+if [ -d "$OUTPUTDIR" ]
 then
 
     echo "Output Directory Already Exists"
@@ -38,9 +38,9 @@ then
 
     else
 
-    echo 'Creating output directory' ${OUTPUTDIR}
-    mkdir -p ${OUTPUTDIR}/FASTP/
-    mkdir -p ${OUTPUTDIR}/KRAKEN/
+    echo 'Creating output directory' "$OUTPUTDIR"
+    mkdir -p "$OUTPUTDIR"/FASTP/
+    mkdir -p "$OUTPUTDIR"/KRAKEN/
 
 fi
 
@@ -62,16 +62,16 @@ do
 
     ls ${INPUTDIR}/${i}*_R1_*.fastq.gz
 
-done < ${NAMES} > ${OUTPUTDIR}/.temp_paths1
+done < ${NAMES} > "$OUTPUTDIR"/.temp_paths1
 
 while IFS= read -r i || [[ -n "$i" ]]
 do
 
     ls ${INPUTDIR}/${i}*_R2_*.fastq.gz
 
-done < ${NAMES} > ${OUTPUTDIR}/.temp_paths2
+done < ${NAMES} > "$OUTPUTDIR"/.temp_paths2
 
-paste -d $'\t' ${NAMES} ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 > ${OUTPUTDIR}/.temp_manifest
+paste -d $'\t' ${NAMES} "$OUTPUTDIR"/.temp_paths1 "$OUTPUTDIR"/.temp_paths2 > "$OUTPUTDIR"/.temp_manifest
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
@@ -94,7 +94,7 @@ do
 
 	fi
 
-done < ${OUTPUTDIR}/.temp_manifest
+done < "$OUTPUTDIR"/.temp_manifest
 
 # exit if fastq files don't exist
 if [ ${FASTQERROR} = 'true' ]
@@ -112,47 +112,47 @@ echo 'All specified inputs look good, starting pipeline'
 set +e
 
 echo 'Computing raw FASTQ read stats'
-seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths1 | \
+seqkit stats -abT --infile-list "$OUTPUTDIR"/.temp_paths1 | \
     cut -f 1,4,5,6,7,8,13 | \
     sed 's,_S.*.fastq.gz,,' | \
-    sed 's,num_seqs,readpairs_raw,' > ${OUTPUTDIR}/.read_stats_raw
+    sed 's,num_seqs,readpairs_raw,' > "$OUTPUTDIR"/.read_stats_raw
 
 # identify empty read sets and remove from analysis loop
-awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats_raw | cut -f 1 > ${OUTPUTDIR}/.emptysamples
+awk -F '\t' '$2 == 0' "$OUTPUTDIR"/.read_stats_raw | cut -f 1 > "$OUTPUTDIR"/.emptysamples
 
-if [ -s ${OUTPUTDIR}/.emptysamples ]
+if [ -s "$OUTPUTDIR"/.emptysamples ]
 then
 
     awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
-        ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
+        "$OUTPUTDIR"/.emptysamples "$OUTPUTDIR"/.temp_manifest > "$OUTPUTDIR"/.temp_manifest_filtered
 
 else
 
-    cp ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered
+    cp "$OUTPUTDIR"/.temp_manifest "$OUTPUTDIR"/.temp_manifest_filtered
 
 fi
 
 # remove empty read sets from read stats file
-if [ -s ${OUTPUTDIR}/.emptysamples ]
+if [ -s "$OUTPUTDIR"/.emptysamples ]
 then
 
     awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
-        ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats_raw > ${OUTPUTDIR}/read_stats_raw.tsv
+        "$OUTPUTDIR"/.emptysamples "$OUTPUTDIR"/.read_stats_raw > "$OUTPUTDIR"/read_stats_raw.tsv
 
 else
 
-    cp ${OUTPUTDIR}/.read_stats_raw ${OUTPUTDIR}/read_stats_raw.tsv
+    cp "$OUTPUTDIR"/.read_stats_raw "$OUTPUTDIR"/read_stats_raw.tsv
 
 fi
 
 # print information about empty reads sets
-SAMPLESREMOVED=$(wc -l < "${OUTPUTDIR}/.emptysamples")
+SAMPLESREMOVED=$(wc -l < ""$OUTPUTDIR"/.emptysamples")
 if [ "$SAMPLESREMOVED" -gt 0 ]
 then
 
     echo ''
     echo 'Removing the following samples from QC due to empty read sets:'
-    cat ${OUTPUTDIR}/.emptysamples
+    cat "$OUTPUTDIR"/.emptysamples
     echo ''
 
 else
@@ -173,22 +173,22 @@ do
     fastp \
         --in1 ${j} \
         --in2 ${k} \
-        --out1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
-        --out2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
+        --out1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz \
+        --out2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
         --detect_adapter_for_pe \
         --length_required 50 \
         --thread 20 \
-        --html ${OUTPUTDIR}/FASTP/"$i"_fastp.html \
-        --json ${OUTPUTDIR}/FASTP/"$i"_fastp.json
+        --html "$OUTPUTDIR"/FASTP/"$i"_fastp.html \
+        --json "$OUTPUTDIR"/FASTP/"$i"_fastp.json
 
-done < ${OUTPUTDIR}/.temp_manifest_filtered
+done < "$OUTPUTDIR"/.temp_manifest_filtered
 
 # calculate read stats for trimmed data
 echo 'Computing trimmed FASTQ read stats'
-seqkit stats -abT ${OUTPUTDIR}/FASTP/*_R1_paired.fastq.gz | \
+seqkit stats -abT "$OUTPUTDIR"/FASTP/*_R1_paired.fastq.gz | \
     cut -f 1,4,5,6,7,8,13 | \
-    sed 's,_S.*.fastq.gz,,' | \
-    sed 's,num_seqs,readpairs_trimmed,' > ${OUTPUTDIR}/read_stats_trimmed.tsv
+    sed 's,_R1_paired.fastq.gz ,,' | \
+    sed 's,num_seqs,readpairs_trimmed,' > "$OUTPUTDIR"/read_stats_trimmed.tsv
 
 # run hostile
 while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
@@ -200,8 +200,8 @@ do
         echo "Removing $HOST Data From Sample $i"
         
         hostile clean \
-            --fastq1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
-            --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
+            --fastq1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz \
+            --fastq2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
             --aligner bowtie2 \
             --index /home/cwwalsh/Databases/Hostile/human-t2t-hla-argos985-mycob140 \
             --output "$OUTPUTDIR"/FASTP/ \
@@ -210,8 +210,8 @@ do
     elif [[ "$HOST" = "mouse" ]]; then
 
         hostile clean \
-            --fastq1 ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz \
-            --fastq2 ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz \
+            --fastq1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz \
+            --fastq2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
             --aligner bowtie2 \
             --index /home/cwwalsh/Databases/Hostile/mouse-mm39 \
             --output "$OUTPUTDIR"/FASTP/ \
@@ -220,23 +220,23 @@ do
     else
 
         echo 'Skipping host removal'
-        cp ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz
-        cp ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
+        cp "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz "$OUTPUTDIR"/FASTP/"$i"_R1_paired.clean_1.fastq.gz
+        cp "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz "$OUTPUTDIR"/FASTP/"$i"_R2_paired.clean_2.fastq.gz
         
     fi
 
-    rm -f ${OUTPUTDIR}/FASTP/"$i"_R1_paired.fastq.gz ${OUTPUTDIR}/FASTP/"$i"_R2_paired.fastq.gz
+    rm -f "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz
 
-done < ${OUTPUTDIR}/.temp_manifest_filtered
+done < "$OUTPUTDIR"/.temp_manifest_filtered
 
 # calculate read stats for dehostified data
 if [[ "$HOST" = "human" || "$HOST" = "mouse" ]]; then
 
     echo 'Computing dehostified (not a word) FASTQ read stats'
-    seqkit stats -abT ${OUTPUTDIR}/FASTP/*_R1_paired.clean_1.fastq.gz | \
+    seqkit stats -abT "$OUTPUTDIR"/FASTP/*_R1_paired.clean_1.fastq.gz | \
         cut -f 1,4,5,6,7,8,13 | \
-        sed 's,_S.*.fastq.gz,,' | \
-        sed 's,num_seqs,readpairs_dehostified,' > ${OUTPUTDIR}/read_stats_dehostified.tsv
+        sed 's,_R1_paired.clean_1.fastq.gz,,' | \
+        sed 's,num_seqs,readpairs_dehostified,' > "$OUTPUTDIR"/read_stats_dehostified.tsv
 
 fi
 
@@ -253,42 +253,42 @@ do
         --threads 20 \
         --paired \
         --output /dev/null \
-        --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
-        ${OUTPUTDIR}/FASTP/"$i"_R1_paired.clean_1.fastq.gz \
-        ${OUTPUTDIR}/FASTP/"$i"_R2_paired.clean_2.fastq.gz
+        --report "$OUTPUTDIR"/KRAKEN/${i}_report.tsv \
+        "$OUTPUTDIR"/FASTP/"$i"_R1_paired.clean_1.fastq.gz \
+        "$OUTPUTDIR"/FASTP/"$i"_R2_paired.clean_2.fastq.gz
 
     echo 'Starting Bracken profiling of sample' ${i}
 
     bracken \
         -d /home/mdu/resources/kraken2/pluspf \
-        -i ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
-        -o ${OUTPUTDIR}/KRAKEN/${i}_brackenout.tsv \
-        -w ${OUTPUTDIR}/KRAKEN/${i}_brackenreport.tsv \
+        -i "$OUTPUTDIR"/KRAKEN/${i}_report.tsv \
+        -o "$OUTPUTDIR"/KRAKEN/${i}_brackenout.tsv \
+        -w "$OUTPUTDIR"/KRAKEN/${i}_brackenreport.tsv \
         -r 150
 
-done < ${OUTPUTDIR}/.temp_manifest_filtered
+done < "$OUTPUTDIR"/.temp_manifest_filtered
 
 combine_bracken_outputs.py \
-    --files ${OUTPUTDIR}/KRAKEN/*_brackenout.tsv \
-    -o ${OUTPUTDIR}/bracken_combined.tsv
+    --files "$OUTPUTDIR"/KRAKEN/*_brackenout.tsv \
+    -o "$OUTPUTDIR"/bracken_combined.tsv
 
 if [[ "$HOST" = "human" ]] || [[ "$HOST" = "mouse" ]]
 then
 
     csvtk join \
         -t --left-join --na 0 \
-        -f file ${OUTPUTDIR}/read_stats_raw.tsv ${OUTPUTDIR}/read_stats_trimmed.tsv ${OUTPUTDIR}/read_stats_dehostified.tsv | \
+        -f file "$OUTPUTDIR"/read_stats_raw.tsv "$OUTPUTDIR"/read_stats_trimmed.tsv "$OUTPUTDIR"/read_stats_dehostified.tsv | \
         csvtk cut -t -f file,readpairs_raw,readpairs_trimmed,readpairs_dehostified > \
-        ${OUTPUTDIR}/read_stats_combined.tsv
+        "$OUTPUTDIR"/read_stats_combined.tsv
 
     else
 
     csvtk join \
         -t --left-join --na 0 \
-        -f file ${OUTPUTDIR}/read_stats_raw.tsv ${OUTPUTDIR}/read_stats_trimmed.tsv | \
+        -f file "$OUTPUTDIR"/read_stats_raw.tsv "$OUTPUTDIR"/read_stats_trimmed.tsv | \
         csvtk cut -t -f file,readpairs_raw,readpairs_trimmed > \
-        ${OUTPUTDIR}/read_stats_combined.tsv
+        "$OUTPUTDIR"/read_stats_combined.tsv
 
 fi
 
-rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
+rm -f "$OUTPUTDIR"/.temp_manifest "$OUTPUTDIR"/.temp_manifest_filtered "$OUTPUTDIR"/.temp_paths1 "$OUTPUTDIR"/.temp_paths2 
