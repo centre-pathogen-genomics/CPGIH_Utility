@@ -187,7 +187,7 @@ done < "$OUTPUTDIR"/.temp_manifest_filtered
 echo 'Computing trimmed FASTQ read stats'
 seqkit stats -abT "$OUTPUTDIR"/FASTP/*_R1_paired.fastq.gz | \
     cut -f 1,4,5,6,7,8,13 | \
-    sed 's,_R1_paired.fastq.gz ,,' | \
+    sed 's,_R1_paired.fastq.gz,,' | \
     sed 's,num_seqs,readpairs_trimmed,' > "$OUTPUTDIR"/read_stats_trimmed.tsv
 
 # run hostile
