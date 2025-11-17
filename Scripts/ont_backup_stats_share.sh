@@ -77,83 +77,16 @@ then
 fi
 
 # IF WRITE PERMISSIONS ARE SET CORRECTNLY ON INPUT DIR
-# MAKE OUTPUT DIR
-# MOVE FASTQ, POD5, REPORT, AND ANALYSIS DIRS TO OUTPUT DIR
+# MAKE OUTPUT DIRECTORY AND COPY RENAMING FILE 
+# OTHERWISE, ERROR AND EXIT
 if [ -w "$INPUTDIRECTORY" ]
 then
 
     echo "Ouput Directory:" "$OUTPUTDIRECTORY"
     mkdir "$OUTPUTDIRECTORY"
-    
-    if [ -d "$INPUTDIRECTORY"/fastq_pass ]
-    then
 
-        mv "$INPUTDIRECTORY"/fastq_pass "$OUTPUTDIRECTORY"
+    cp "$RENAMINGTSV" "$OUTPUTDIRECTORY"/renaming.tsv
 
-    fi
-
-    if [ -d "$INPUTDIRECTORY"/fastq ]
-    then
-
-        mv "$INPUTDIRECTORY"/fastq "$OUTPUTDIRECTORY"
-
-    fi
-
-    if [ -d "$INPUTDIRECTORY"/fastq-pass ]
-    then
-
-        mv "$INPUTDIRECTORY"/fastq-pass "$OUTPUTDIRECTORY"
-
-    fi
-    
-    if [ -d "$INPUTDIRECTORY"/fast5_pass ]
-    then
-
-        mv "$INPUTDIRECTORY"/fast5_pass "$OUTPUTDIRECTORY"
-
-    fi
-
-    if [ -d "$INPUTDIRECTORY"/pod5_pass ]
-    then
-
-        mv "$INPUTDIRECTORY"/pod5_pass "$OUTPUTDIRECTORY"
-
-    fi
-
-    if [ -d "$INPUTDIRECTORY"/fast5 ]
-    then
-
-        mv "$INPUTDIRECTORY"/fast5 "$OUTPUTDIRECTORY"
-
-    fi
-    
-    if [ -d "$INPUTDIRECTORY"/pod5 ]
-    then
-
-        mv "$INPUTDIRECTORY"/pod5 "$OUTPUTDIRECTORY"
-
-    fi
-
-    if [ -d "$INPUTDIRECTORY"/reports ]
-    then
-
-        mv "$INPUTDIRECTORY"/reports "$OUTPUTDIRECTORY"
-
-    fi
-
-    if [ -d "$INPUTDIRECTORY"/other_reports ]
-    then
-
-        mv "$INPUTDIRECTORY"/other_reports "$OUTPUTDIRECTORY"
-
-    fi
-
-    if [ -d "$INPUTDIRECTORY"/analysis ]
-    then
-
-        mv "$INPUTDIRECTORY"/analysis "$OUTPUTDIRECTORY"
-
-    fi
 else
 
     echo "Permission Denied"
@@ -161,22 +94,101 @@ else
 
 fi
 
-# COPY RENAMING INFO FILE TO OUTPUT DIR
-cp "$RENAMINGTSV" "$OUTPUTDIRECTORY"/renaming.tsv
-
-# SET WORKING DIR TO OUTPUT FASTQ OR FASTQ_PASS DIR 
-if [ -d "$OUTPUTDIRECTORY"/fastq_pass/ ]
+# MOVE POD5, REPORT, AND ANALYSIS DIRS TO OUTPUT DIR
+if [ -d "$INPUTDIRECTORY"/fast5_pass ]
 then
+
+    mv "$INPUTDIRECTORY"/fast5_pass "$OUTPUTDIRECTORY"
+
+fi
+
+if [ -d "$INPUTDIRECTORY"/pod5_pass ]
+then
+
+    mv "$INPUTDIRECTORY"/pod5_pass "$OUTPUTDIRECTORY"
+
+fi
+
+if [ -d "$INPUTDIRECTORY"/fast5 ]
+then
+
+    mv "$INPUTDIRECTORY"/fast5 "$OUTPUTDIRECTORY"
+
+fi
+
+if [ -d "$INPUTDIRECTORY"/pod5 ]
+then
+
+    mv "$INPUTDIRECTORY"/pod5 "$OUTPUTDIRECTORY"
+
+fi
+
+if [ -d "$INPUTDIRECTORY"/reports ]
+then
+
+    mv "$INPUTDIRECTORY"/reports "$OUTPUTDIRECTORY"
+
+fi
+
+if [ -d "$INPUTDIRECTORY"/other_reports ]
+then
+
+    mv "$INPUTDIRECTORY"/other_reports "$OUTPUTDIRECTORY"
+
+fi
+
+if [ -d "$INPUTDIRECTORY"/analysis ]
+then
+
+    mv "$INPUTDIRECTORY"/analysis "$OUTPUTDIRECTORY"
+
+fi
+
+# ONLY REMOVE FASTQ DATA FOR SAMPLES NAMED IN RENAMINGTSV
+# AND CHANGE WORKING DIRECTORY TO FASTQ DIRECTORY
+if [ -d "$INPUTDIRECTORY"/fastq_pass ]
+then
+
+    mkdir "$OUTPUTDIRECTORY"/fastq_pass
+
+    while IFS=$'\t' read -r i j || [[ -n ${i} ]] 
+    do
+
+        mv "$INPUTDIRECTORY"/fastq_pass/"$i" "$OUTPUTDIRECTORY"/fastq_pass/
+    
+    done < "$RENAMINGTSV"
 
     cd "$OUTPUTDIRECTORY"/fastq_pass/
 
-elif [ -d "$OUTPUTDIRECTORY"/fastq/ ]
+fi
+
+if [ -d "$INPUTDIRECTORY"/fastq ]
 then
+
+    mkdir "$OUTPUTDIRECTORY"/fastq
+
+    while IFS=$'\t' read -r i j || [[ -n ${i} ]] 
+    do
+
+        mv "$INPUTDIRECTORY"/fastq/"$i" "$OUTPUTDIRECTORY"/fastq/
+    
+    done < "$RENAMINGTSV"
 
     cd "$OUTPUTDIRECTORY"/fastq/
 
-elif [ -d "$OUTPUTDIRECTORY"/fastq-pass/ ]
+fi
+
+if [ -d "$INPUTDIRECTORY"/fastq-pass ]
 then
+
+    mkdir "$OUTPUTDIRECTORY"/fastq-pass
+
+    while IFS=$'\t' read -r i j || [[ -n ${i} ]] 
+    do
+
+        mv "$INPUTDIRECTORY"/fastq-pass/"$i" "$OUTPUTDIRECTORY"/fastq-pass/
+    
+    done < "$RENAMINGTSV"
 
     cd "$OUTPUTDIRECTORY"/fastq-pass/
 
