@@ -12,6 +12,16 @@ MAXLEN=1700
 # fail if errors are detected - only using during QC
 set -e
 
+# find this script's directory and the filter script 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+FILTER_SCRIPT="${SCRIPT_DIR}/ont_filter_fastq.py"
+
+# ensure the filter script exists
+if [ ! -f "${FILTER_SCRIPT}" ]; then
+    echo "Required script not found: ${FILTER_SCRIPT}"
+    exit 1
+fi
+
 # ensure names file exits
 if [ ! -f ${NAMES} ]
 then
@@ -94,7 +104,8 @@ while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
     
     echo 'Starting read filtering of sample' ${i}
-	python /home/cwwalsh/Scripts/DAMG/ONT-16S/utils/filter_fastq.py \
+
+	python "${FILTER_SCRIPT}" \
 	   --input_file ${j} \
 	   --output_file ${OUTPUTDIR}/FILTERED_FASTQ/${i}.fastq.gz \
 	   --min_length ${MINLEN} \
@@ -102,13 +113,14 @@ do
 
 done < ${OUTPUTDIR}/.manifest.tsv
 
-/home/cwwalsh/Software/seqkit stats\
+/home/cwwalsh/Software/seqkit stats \
 	-abT ${OUTPUTDIR}/FILTERED_FASTQ/*.fastq.gz > ${OUTPUTDIR}/seqkit_stats_filtered.txt
 
 while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do 
 
     echo 'Starting Emu classification of sample' ${i}
+
 	emu abundance \
 		--type map-ont \
 		--db /home/cwwalsh/Databases/Emu/ \
