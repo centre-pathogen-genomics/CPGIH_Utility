@@ -177,7 +177,7 @@ do
         --out2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
         --detect_adapter_for_pe \
         --length_required 50 \
-        --thread 20 \
+        --thread 24 \
         --html "$OUTPUTDIR"/FASTP/"$i"_fastp.html \
         --json "$OUTPUTDIR"/FASTP/"$i"_fastp.json
 
@@ -203,9 +203,9 @@ do
             --fastq1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz \
             --fastq2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
             --aligner bowtie2 \
-            --index /home/cwwalsh/Databases/Hostile/human-t2t-hla-argos985-mycob140 \
+            --index /home/shared/db/hostile/human-t2t-hla-argos985-mycob140 \
             --output "$OUTPUTDIR"/FASTP/ \
-            --threads 20
+            --threads 24
 
     elif [[ "$HOST" = "mouse" ]]; then
 
@@ -213,9 +213,9 @@ do
             --fastq1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz \
             --fastq2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
             --aligner bowtie2 \
-            --index /home/cwwalsh/Databases/Hostile/mouse-mm39 \
+            --index /home/shared/db/hostile/mouse-mm39 \
             --output "$OUTPUTDIR"/FASTP/ \
-            --threads 20
+            --threads 24
         
     else
 
@@ -247,10 +247,10 @@ do
     echo 'Starting Kraken2 classification of sample' ${i}
 
     kraken2 \
-        --db /home/mdu/resources/kraken2/pluspf \
+        --db /home/shared/db/kraken2/k2_pluspfp_20251015 \
         --confidence 0.1 \
         --use-names \
-        --threads 20 \
+        --threads 24 \
         --paired \
         --output /dev/null \
         --report "$OUTPUTDIR"/KRAKEN/${i}_report.tsv \
@@ -260,7 +260,7 @@ do
     echo 'Starting Bracken profiling of sample' ${i}
 
     bracken \
-        -d /home/mdu/resources/kraken2/pluspf \
+        -d /home/shared/db/kraken2/k2_pluspfp_20251015 \
         -i "$OUTPUTDIR"/KRAKEN/${i}_report.tsv \
         -o "$OUTPUTDIR"/KRAKEN/${i}_brackenout.tsv \
         -w "$OUTPUTDIR"/KRAKEN/${i}_brackenreport.tsv \

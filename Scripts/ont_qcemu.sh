@@ -123,7 +123,7 @@ do
 
 	emu abundance \
 		--type map-ont \
-		--db /home/cwwalsh/Databases/Emu/ \
+		--db /home/shared/db/emu/ \
 		--keep-counts \
 		--output-dir ${OUTPUTDIR}/EmuResults/ \
 		--output-basename ${i} \
