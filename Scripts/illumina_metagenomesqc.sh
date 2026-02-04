@@ -60,14 +60,14 @@ fi
 while IFS= read -r i || [[ -n "$i" ]]
 do
 
-    ls ${INPUTDIR}/${i}*_R1_*.fastq.gz
+    ls ${INPUTDIR}/${i}_S*_R1_*.fastq.gz
 
 done < ${NAMES} > "$OUTPUTDIR"/.temp_paths1
 
 while IFS= read -r i || [[ -n "$i" ]]
 do
 
-    ls ${INPUTDIR}/${i}*_R2_*.fastq.gz
+    ls ${INPUTDIR}/${i}_S*_R2_*.fastq.gz
 
 done < ${NAMES} > "$OUTPUTDIR"/.temp_paths2
 
