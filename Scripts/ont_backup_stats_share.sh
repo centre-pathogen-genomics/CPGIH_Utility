@@ -144,7 +144,7 @@ then
 
 fi
 
-# ONLY REMOVE FASTQ DATA FOR SAMPLES NAMED IN RENAMINGTSV
+# ONLY MOVE FASTQ DATA FOR SAMPLES NAMED IN RENAMINGTSV
 # AND CHANGE WORKING DIRECTORY TO FASTQ DIRECTORY
 if [ -d "$INPUTDIRECTORY"/fastq_pass ]
 then
@@ -228,13 +228,29 @@ echo "Generating Read Length and Quality Statistics"
     cut -f 1,4,5,13,14,15 | \
         /home/cwwalsh/Software/csvtk pretty -t > ../seqkit_stats.tsv
 
-# SHARE ALL FILES FROM RUN IF SHARING TEMPLATE FILE PROVIDED
+# SHARE ALL FASTQ FILES FROM RUN IF SHARING TEMPLATE FILE PROVIDED
 if [ ! -z "$3" ]
 then
 
     ls *.fastq.gz | sed 's/.fastq.gz$//' > names.tsv
     mdu share --input_file names.tsv --source . -t "$SHARETEMPLATE"
     rm -f names.tsv
+
+fi
+
+# TREATING BAM FILES THE SAME AS FASTQ FILES
+# BACKING UP AND RENAMING IF LISTED IN RENAMINGTSV
+if [ -d "$INPUTDIRECTORY"/bam_pass ]
+then
+
+    mkdir "$OUTPUTDIRECTORY"/bam_pass
+
+    while IFS=$'\t' read -r i j || [[ -n ${i} ]] 
+    do
+      
+        mv "$INPUTDIRECTORY"/bam_pass/"$i"/*.bam "$OUTPUTDIRECTORY"/bam_pass/"$j".bam
+    
+    done < "$RENAMINGTSV"
 
 fi
 
