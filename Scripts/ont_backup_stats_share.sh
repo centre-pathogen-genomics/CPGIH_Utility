@@ -233,7 +233,7 @@ if [ ! -z "$3" ]
 then
 
     ls *.fastq.gz | sed 's/.fastq.gz$//' > names.tsv
-    mdu share --input_file names.tsv --source . -t "$SHARETEMPLATE"
+    /home/mdu/bin/mdu share --input_file names.tsv --source . -t "$SHARETEMPLATE"
     rm -f names.tsv
 
 fi
