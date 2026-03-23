@@ -1,3 +1,4 @@
+#!/bin/bash
 
 wget ftp://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt
 

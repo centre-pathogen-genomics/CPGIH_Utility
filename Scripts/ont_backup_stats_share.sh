@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # USAGE: ont_backup_stats_share.sh runID renamingTSV /optional/path/to/share_template.txt
 
