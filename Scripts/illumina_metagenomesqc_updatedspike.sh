@@ -1,0 +1,379 @@
+#!/bin/bash
+
+# USAGE: illumina_metagenomesqc.sh names inputdirectory outputdirectory host spike
+
+NAMES=$1
+INPUTDIR=$2
+OUTPUTDIR=$3
+HOST=$4
+SPIKE=$5
+
+# fail if errors are detected - only using during QC
+set -e
+
+# ensure names file exits
+if [ ! -f ${NAMES} ]
+then
+
+    echo "Sample Names Input Does Not Exist. Mission Aborted."
+    exit 1
+
+fi
+
+# ensure input directory exists
+if [ ! -d ${INPUTDIR} ]
+then
+
+    echo "Input Directory Does Not Exist. Mission Aborted."
+    exit 1
+
+fi
+
+# ensure output directory doesn't exist
+# if it doesn't, create it and all subdirectories
+if [ -d "$OUTPUTDIR" ]
+then
+
+    echo "Output Directory Already Exists"
+    exit 1
+
+    else
+
+    echo 'Creating output directory' "$OUTPUTDIR"
+    mkdir -p "$OUTPUTDIR"/FASTP/
+    mkdir -p "$OUTPUTDIR"/KRAKEN/
+
+fi
+
+# ensure host name is set correctly
+if [[ "$HOST" = "human" ]] || [[ "$HOST" = "mouse" ]]
+then
+
+    echo "Host Specified:" $HOST
+
+    else
+
+    echo "Valid host not specified, skipping decontamination step"
+
+fi
+
+# ensure spike name is set correctly
+if [[ "$SPIKE" = "highbiomass" ]] || [[ "$SPIKE" = "lowbiomass" ]] || [[ "$SPIKE" = "none" ]]
+then
+
+    echo "Spike-in Specified:" $SPIKE
+
+    else
+
+    echo "Valid spike-in not specified, skipping spike-in step"
+
+fi
+
+# make manifest file
+while IFS= read -r i || [[ -n "$i" ]]
+do
+
+    ls ${INPUTDIR}/${i}_S*_R1_*.fastq.gz
+
+done < ${NAMES} > "$OUTPUTDIR"/.temp_paths1
+
+while IFS= read -r i || [[ -n "$i" ]]
+do
+
+    ls ${INPUTDIR}/${i}_S*_R2_*.fastq.gz
+
+done < ${NAMES} > "$OUTPUTDIR"/.temp_paths2
+
+paste -d $'\t' ${NAMES} "$OUTPUTDIR"/.temp_paths1 "$OUTPUTDIR"/.temp_paths2 > "$OUTPUTDIR"/.temp_manifest
+
+# ensure all specified input fastq files exist
+FASTQERROR='false'
+while IFS=$'\t' read -r i j k  || [[ -n "$i" ]]
+do
+    
+    if [ ! -f ${j} ]
+	then
+
+		echo 'File' ${j} 'does not exist'
+		FASTQERROR='true'
+
+	fi
+
+	if [ ! -f ${k} ]
+	then
+
+		echo 'File' ${k} 'does not exist'
+		FASTQERROR='true'
+
+	fi
+
+done < "$OUTPUTDIR"/.temp_manifest
+
+# exit if fastq files don't exist
+if [ ${FASTQERROR} = 'true' ]
+then
+
+    exit 1
+
+fi
+
+# START PIPELINE
+
+echo 'All specified inputs look good, starting pipeline'
+
+# removing error handling behaviour
+set +e
+
+echo 'Computing raw FASTQ read stats'
+seqkit stats -abT --infile-list "$OUTPUTDIR"/.temp_paths1 | \
+    cut -f 1,4,5,6,7,8,13 | \
+    sed 's,_S.*.fastq.gz,,' | \
+    sed 's,num_seqs,readpairs_raw,' > "$OUTPUTDIR"/.read_stats_raw
+
+# identify empty read sets and remove from analysis loop
+awk -F '\t' '$2 == 0' "$OUTPUTDIR"/.read_stats_raw | cut -f 1 > "$OUTPUTDIR"/.emptysamples
+
+if [ -s "$OUTPUTDIR"/.emptysamples ]
+then
+
+    awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
+        "$OUTPUTDIR"/.emptysamples "$OUTPUTDIR"/.temp_manifest > "$OUTPUTDIR"/.temp_manifest_filtered
+
+else
+
+    cp "$OUTPUTDIR"/.temp_manifest "$OUTPUTDIR"/.temp_manifest_filtered
+
+fi
+
+# remove empty read sets from read stats file
+if [ -s "$OUTPUTDIR"/.emptysamples ]
+then
+
+    awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
+        "$OUTPUTDIR"/.emptysamples "$OUTPUTDIR"/.read_stats_raw > "$OUTPUTDIR"/read_stats_raw.tsv
+
+else
+
+    cp "$OUTPUTDIR"/.read_stats_raw "$OUTPUTDIR"/read_stats_raw.tsv
+
+fi
+
+# print information about empty reads sets
+SAMPLESREMOVED=$(wc -l < ""$OUTPUTDIR"/.emptysamples")
+if [ "$SAMPLESREMOVED" -gt 0 ]
+then
+
+    echo ''
+    echo 'Removing the following samples from QC due to empty read sets:'
+    cat "$OUTPUTDIR"/.emptysamples
+    echo ''
+
+else
+
+    echo ''
+    echo 'All sample read sets are non-empty, retaining all for analysis'
+    echo ''
+
+fi
+    
+# run fastp
+while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
+do
+
+    echo 'Starting fastp processing of sample' ${i}
+    echo 'Using reads in' ${j} ${k}
+
+    fastp \
+        --in1 ${j} \
+        --in2 ${k} \
+        --out1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz \
+        --out2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
+        --detect_adapter_for_pe \
+        --length_required 50 \
+        --thread 24 \
+        --html "$OUTPUTDIR"/FASTP/"$i"_fastp.html \
+        --json "$OUTPUTDIR"/FASTP/"$i"_fastp.json
+
+done < "$OUTPUTDIR"/.temp_manifest_filtered
+
+# calculate read stats for trimmed data
+echo 'Computing trimmed FASTQ read stats'
+seqkit stats -abT "$OUTPUTDIR"/FASTP/*_R1_paired.fastq.gz | \
+    cut -f 1,4,5,6,7,8,13 | \
+    sed 's,_R1_paired.fastq.gz,,' | \
+    sed 's,num_seqs,readpairs_trimmed,' > "$OUTPUTDIR"/read_stats_trimmed.tsv
+
+# run hostile
+while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
+do    
+    # take host name from input 
+    # human, mouse, none
+    if [[ "$HOST" = "human" ]] ; then
+        
+        echo "Removing $HOST Data From Sample $i"
+        
+        hostile clean \
+            --fastq1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz \
+            --fastq2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
+            --aligner bowtie2 \
+            --index /home/shared/db/hostile/human-t2t-hla-argos985-mycob140 \
+            --output "$OUTPUTDIR"/FASTP/ \
+            --threads 24
+
+    elif [[ "$HOST" = "mouse" ]]; then
+
+        hostile clean \
+            --fastq1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz \
+            --fastq2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz \
+            --aligner bowtie2 \
+            --index /home/shared/db/hostile/mouse-mm39 \
+            --output "$OUTPUTDIR"/FASTP/ \
+            --threads 24
+        
+    else
+
+        echo 'Skipping host removal'
+        cp "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz "$OUTPUTDIR"/FASTP/"$i"_R1_paired.clean_1.fastq.gz
+        cp "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz "$OUTPUTDIR"/FASTP/"$i"_R2_paired.clean_2.fastq.gz
+        
+    fi
+
+    rm -f "$OUTPUTDIR"/FASTP/"$i"_R1_paired.fastq.gz "$OUTPUTDIR"/FASTP/"$i"_R2_paired.fastq.gz
+
+done < "$OUTPUTDIR"/.temp_manifest_filtered
+
+# calculate read stats for dehostified data
+if [[ "$HOST" = "human" || "$HOST" = "mouse" ]]; then
+
+    echo 'Computing dehostified (not a word) FASTQ read stats'
+    seqkit stats -abT "$OUTPUTDIR"/FASTP/*_R1_paired.clean_1.fastq.gz | \
+        cut -f 1,4,5,6,7,8,13 | \
+        sed 's,_R1_paired.clean_1.fastq.gz,,' | \
+        sed 's,num_seqs,readpairs_dehostified,' > "$OUTPUTDIR"/read_stats_dehostified.tsv
+
+fi
+
+# run spike-in quantification and removal
+while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
+do   
+
+    mkdir "$OUTPUTDIR"/SPIKE_OUT/ 
+
+    # take spike name from input 
+    # lowbiomass, highbiomass, none
+    if [[ "$SPIKE" = "lowbiomass" ]] || [[ "$SPIKE" = "highbiomass" ]] ; then
+        
+        echo "Removing $SPIKE Spike Data From Sample $i"
+
+        bowtie2 \
+            --end-to-end \
+            --no-mixed \
+            --no-discordant \
+            --mp 6,6 \
+            --np 6 \
+            --score-min L,0,-6 \
+            -x /home/cwwalsh/ZymoSpike/"$SPIKE" \
+            -1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.clean_1.fastq.gz \
+            -2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.clean_2.fastq.gz \
+            | samtools sort \
+            | samtools view -b -o "$OUTPUTDIR"/SPIKE_OUT/"$i".bam     
+
+        samtools view \
+            -b \
+            -F 2308 \
+            "$OUTPUTDIR"/SPIKE_OUT/"$i".bam \
+            > "$OUTPUTDIR"/SPIKE_OUT/"$i"_spike.bam
+
+        samtools index "$OUTPUTDIR"/SPIKE_OUT/"$i"_spike.bam
+
+        samtools idxstats "$OUTPUTDIR"/SPIKE_OUT/"$i"_spike.bam \
+        > "$OUTPUTDIR"/SPIKE_OUT/"$i"_spike.txt
+
+        samtools fastq \
+            -f 12 \
+            -F 256 \
+            -F 2048 \
+            -1 "$OUTPUTDIR"/SPIKE_OUT/"$i"_R1.fastq.gz \
+            -2 "$OUTPUTDIR"/SPIKE_OUT/"$i"_R2.fastq.gz \
+            -0 /dev/null \
+            -s /dev/null \
+            -n \
+            "$OUTPUTDIR"/SPIKE_OUT/"$i".bam
+            
+    else
+
+        echo 'Skipping spike-in quantification and removal'
+        cp "$OUTPUTDIR"/FASTP/"$i"_R1_paired.clean_1.fastq.gz "$OUTPUTDIR"/SPIKE_OUT/"$i"_R1.fastq.gz
+        cp "$OUTPUTDIR"/FASTP/"$i"_R2_paired.clean_2.fastq.gz "$OUTPUTDIR"/SPIKE_OUT/"$i"_R2.fastq.gz
+        
+    fi
+
+    rm -f "$OUTPUTDIR"/FASTP/"$i"_R1_paired.clean_1.fastq.gz "$OUTPUTDIR"/FASTP/"$i"_R2_paired.clean_2.fastq.gz
+
+done < "$OUTPUTDIR"/.temp_manifest_filtered
+
+# calculate read stats for despikified data
+if [[ "$SPIKE" = "lowbiomass" || "$SPIKE" = "highbiomass" ]]; then
+
+    echo 'Computing despikified (not a word) FASTQ read stats'
+    seqkit stats -abT "$OUTPUTDIR"/SPIKE_OUT/*_R1.fastq.gz | \
+        cut -f 1,4,5,6,7,8,13 | \
+        sed 's,_R1.fastq.gz,,' | \
+        sed 's,num_seqs,readpairs_despikified,' > "$OUTPUTDIR"/read_stats_despikified.tsv
+
+fi
+
+# run kraken2 and bracken
+while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
+do
+    
+    echo 'Starting Kraken2 classification of sample' ${i}
+
+    kraken2 \
+        --db /home/shared/db/kraken2/k2_pluspfp_20251015 \
+        --confidence 0.1 \
+        --use-names \
+        --threads 24 \
+        --paired \
+        --output /dev/null \
+        --report "$OUTPUTDIR"/KRAKEN/${i}_report.tsv \
+        "$OUTPUTDIR"/SPIKE_OUT/"$i"_R1.fastq.gz \
+        "$OUTPUTDIR"/SPIKE_OUT/"$i"_R2.fastq.gz
+
+    echo 'Starting Bracken profiling of sample' ${i}
+
+    bracken \
+        -d /home/shared/db/kraken2/k2_pluspfp_20251015 \
+        -i "$OUTPUTDIR"/KRAKEN/${i}_report.tsv \
+        -o "$OUTPUTDIR"/KRAKEN/${i}_brackenout.tsv \
+        -w "$OUTPUTDIR"/KRAKEN/${i}_brackenreport.tsv \
+        -r 150
+
+done < "$OUTPUTDIR"/.temp_manifest_filtered
+
+combine_bracken_outputs.py \
+    --files "$OUTPUTDIR"/KRAKEN/*_brackenout.tsv \
+    -o "$OUTPUTDIR"/bracken_combined.tsv
+
+# combine read stats 
+STATS_FILES=("$OUTPUTDIR/read_stats_raw.tsv" "$OUTPUTDIR/read_stats_trimmed.tsv")
+STATS_COLS="file,readpairs_raw,readpairs_trimmed"
+
+if [[ "$HOST" = "human" ]] || [[ "$HOST" = "mouse" ]]; then
+    STATS_FILES+=("$OUTPUTDIR/read_stats_dehostified.tsv")
+    STATS_COLS+=",readpairs_dehostified"
+fi
+
+if [[ "$SPIKE" = "lowbiomass" ]] || [[ "$SPIKE" = "highbiomass" ]]; then
+    STATS_FILES+=("$OUTPUTDIR/read_stats_despikified.tsv")
+    STATS_COLS+=",readpairs_despikified"
+fi
+
+csvtk join \
+    -t --left-join --na 0 \
+    -f file "${STATS_FILES[@]}" | \
+    csvtk cut -t -f "$STATS_COLS" > \
+    "$OUTPUTDIR"/read_stats_combined.tsv
+
+
+rm -f "$OUTPUTDIR"/.temp_manifest "$OUTPUTDIR"/.temp_manifest_filtered "$OUTPUTDIR"/.temp_paths1 "$OUTPUTDIR"/.temp_paths2
