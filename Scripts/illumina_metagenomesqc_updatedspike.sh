@@ -257,7 +257,7 @@ fi
 while IFS=$'\t' read -r i j k || [[ -n "$i" ]]
 do   
 
-    mkdir "$OUTPUTDIR"/SPIKE_OUT/ 
+    mkdir -p "$OUTPUTDIR"/SPIKE_OUT/ 
 
     # take spike name from input 
     # lowbiomass, highbiomass, none
@@ -272,7 +272,7 @@ do
             --mp 6,6 \
             --np 6 \
             --score-min L,0,-6 \
-            -x /home/cwwalsh/ZymoSpike/"$SPIKE" \
+            -x /home/cwwalsh/zymospike/"$SPIKE" \
             -1 "$OUTPUTDIR"/FASTP/"$i"_R1_paired.clean_1.fastq.gz \
             -2 "$OUTPUTDIR"/FASTP/"$i"_R2_paired.clean_2.fastq.gz \
             | samtools sort \
