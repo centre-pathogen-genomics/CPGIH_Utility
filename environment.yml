@@ -1,0 +1,20 @@
+name: cpgih-utility
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - python=3.12.3
+  - kraken2
+  - seqkit
+  - csvtk
+  - flye
+  - emu
+  - rasusa
+  - lrge
+  - shovill
+  - fastp
+  - hostile
+  - samtools
+  - taxonkit
+  - gawk
+  - pigz
