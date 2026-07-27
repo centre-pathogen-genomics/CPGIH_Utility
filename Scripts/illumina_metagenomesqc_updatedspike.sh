@@ -375,5 +375,4 @@ csvtk join \
     csvtk cut -t -f "$STATS_COLS" > \
     "$OUTPUTDIR"/read_stats_combined.tsv
 
-
 rm -f "$OUTPUTDIR"/.temp_manifest "$OUTPUTDIR"/.temp_manifest_filtered "$OUTPUTDIR"/.temp_paths1 "$OUTPUTDIR"/.temp_paths2

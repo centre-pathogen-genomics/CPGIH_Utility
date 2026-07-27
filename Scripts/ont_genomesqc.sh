@@ -137,6 +137,23 @@ fi
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/FLYE/
 
+# subsample reads to 100x depth ahead of classification/assembly
+mkdir -p ${OUTPUTDIR}/SUBSAMPLE/
+
+while IFS=$'\t' read -r i j || [[ -n "$i" ]]
+do
+
+    echo 'Subsampling sample' ${i} 'to 100x depth'
+
+    GSIZE=$(lrge ${j})
+    rasusa reads -g ${GSIZE} -c 100 -s 42 ${j} -o ${OUTPUTDIR}/SUBSAMPLE/${i}_100x.fastq.gz
+
+done < ${OUTPUTDIR}/.temp_manifest_filtered
+
+# build manifest pointing to the subsampled reads
+awk -F '\t' -v dir="${OUTPUTDIR}/SUBSAMPLE" '{print $1"\t"dir"/"$1"_100x.fastq.gz"}' \
+    ${OUTPUTDIR}/.temp_manifest_filtered > ${OUTPUTDIR}/.temp_manifest_subsampled
+
 while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
 
@@ -170,7 +187,10 @@ do
 
     mv ${OUTPUTDIR}/FLYE/${i}/assembly.fasta ${OUTPUTDIR}/FLYE/${i}_assembly.fasta
 
-done < ${OUTPUTDIR}/.temp_manifest_filtered
+done < ${OUTPUTDIR}/.temp_manifest_subsampled
+
+# remove subsampled reads now that classification/assembly is complete
+rm -rf ${OUTPUTDIR}/SUBSAMPLE/
 
 # summarising kraken2 species results
 echo -e "file\tspecies1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
@@ -227,7 +247,7 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
     csvtk mutate2 -t  -n mean_coverage -e ' $sum_len / $assembly_length ' | \
     sed 's,+Inf,NA,' > ${OUTPUTDIR}/summary.tsv
 
-rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2 
+rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_manifest_subsampled ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2
 rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
 
 # print information about empty reads sets
