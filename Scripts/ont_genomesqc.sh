@@ -146,9 +146,14 @@ do
     echo 'Subsampling sample' ${i} 'to 100x depth'
 
     GSIZE=$(lrge ${j})
+    echo -e "${i}\t${GSIZE}" >> ${OUTPUTDIR}/.temp_gsize
     rasusa reads -g ${GSIZE} -c 100 -s 42 ${j} -o ${OUTPUTDIR}/SUBSAMPLE/${i}_100x.fastq.gz
 
 done < ${OUTPUTDIR}/.temp_manifest_filtered
+
+# build a permanent record of the LRGE genome size estimates for use in the summary
+echo -e "file\tlrge_genome_size" > ${OUTPUTDIR}/lrge_gsize.tsv
+cat ${OUTPUTDIR}/.temp_gsize >> ${OUTPUTDIR}/lrge_gsize.tsv
 
 # build manifest pointing to the subsampled reads
 awk -F '\t' -v dir="${OUTPUTDIR}/SUBSAMPLE" '{print $1"\t"dir"/"$1"_100x.fastq.gz"}' \
@@ -244,11 +249,114 @@ seqkit stats -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
 csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
-    csvtk mutate2 -t  -n mean_coverage -e ' $sum_len / $assembly_length ' | \
-    sed 's,+Inf,NA,' > ${OUTPUTDIR}/summary.tsv
+    gawk -F'\t' -v OFS='\t' '
+        # first file: build a sample -> LRGE genome size lookup
+        NR==FNR {
+
+            if (FNR > 1) gsize[$1] = $2
+            next
+
+        }
+
+        # second file (joined summary from stdin): compute new columns
+        FNR==1 {
+
+            for (c=1; c<=NF; c++) col[$c] = c
+            print $0, "mean_coverage", "lrge_genome_size", "assembler", "lrge_qc", "assembly_qc", "contig_qc", "species_qc"
+            next
+
+        }
+
+        function species_name(str) {
+            match(str, /^(.*) \([0-9.]+%\)$/, m)
+            return m[1]
+        }
+
+        function species_pct(str) {
+            match(str, /^.* \(([0-9.]+)%\)$/, m)
+            return m[1] + 0
+        }
+
+        function species_genus(str,    parts) {
+            split(str, parts, " ")
+            return parts[1]
+        }
+
+        {
+
+            sum_len = $(col["sum_len"])
+            contigs = $(col["contigs"])
+            assembly_length = $(col["assembly_length"])
+            sp1 = $(col["species1"]); sp2 = $(col["species2"]); sp3 = $(col["species3"])
+
+            gs = ($1 in gsize) ? gsize[$1] + 0 : 0
+
+            # mean coverage: total read bases / LRGE predicted genome size
+            mean_cov = (gs > 0) ? sum_len / gs : "NA"
+
+            assembler = "flye"
+
+            # LRGE QC: flag implausible genome size estimates
+            lrge_qc = (gs < 1800000 || gs > 6500000) ? "FLAG" : "PASS"
+
+            # ASSEMBLY QC: fail if assembly length is more than 10% off the LRGE estimate
+            if (gs > 0) {
+
+                pct_diff = (assembly_length - gs) / gs * 100
+                if (pct_diff < 0) pct_diff = -pct_diff
+                assembly_qc = (pct_diff > 10) ? "FAIL" : "PASS"
+
+            } else {
+
+                assembly_qc = "NA"
+
+            }
+
+            # CONTIG QC
+            if (contigs > 30) {
+                contig_qc = "FAIL"
+            } else if (contigs > 10) {
+                contig_qc = "FLAG"
+            } else {
+                contig_qc = "PASS"
+            }
+
+            # SPECIES QC: based on top3 species and the genus of the top hit
+            name1 = species_name(sp1)
+
+            if (name1 == "NA") {
+
+                species_qc = "FAIL"
+
+            } else {
+
+                pct1 = species_pct(sp1)
+                name2 = species_name(sp2); pct2 = species_pct(sp2)
+                name3 = species_name(sp3); pct3 = species_pct(sp3)
+
+                genus1 = species_genus(name1)
+                genus_sum = pct1
+                if (name2 != "NA" && species_genus(name2) == genus1) genus_sum += pct2
+                if (name3 != "NA" && species_genus(name3) == genus1) genus_sum += pct3
+
+                if (genus_sum < 80) {
+                    species_qc = "FAIL"
+                } else if (pct1 < 80) {
+                    species_qc = "FLAG"
+                } else {
+                    species_qc = "PASS"
+                }
+
+            }
+
+            print $0, mean_cov, gs, assembler, lrge_qc, assembly_qc, contig_qc, species_qc
+
+        }
+    ' ${OUTPUTDIR}/lrge_gsize.tsv - > ${OUTPUTDIR}/summary.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_manifest_subsampled ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2
-rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
+rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths ${OUTPUTDIR}/.temp_gsize
+rm -f ${OUTPUTDIR}/lrge_gsize.tsv
 
 # print information about empty reads sets
 if [ "$SAMPLESREMOVED" -gt 0 ]
