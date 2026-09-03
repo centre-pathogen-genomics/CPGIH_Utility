@@ -262,7 +262,7 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
         FNR==1 {
 
             for (c=1; c<=NF; c++) col[$c] = c
-            print $0, "mean_coverage", "lrge_genome_size", "assembler", "lrge_qc", "assembly_qc", "contig_qc", "species_qc"
+            print $0, "mean_coverage", "predicted_genome_size", "assembler", "lrge_qc", "coverage_qc", "assembly_qc", "contig_qc", "species_qc"
             next
 
         }
@@ -299,12 +299,12 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
             # LRGE QC: flag implausible genome size estimates
             lrge_qc = (gs < 1800000 || gs > 6500000) ? "FLAG" : "PASS"
 
-            # ASSEMBLY QC: fail if assembly length is more than 10% off the LRGE estimate
+            # ASSEMBLY QC: fail if assembly length is more than 15% off the LRGE estimate
             if (gs > 0) {
 
                 pct_diff = (assembly_length - gs) / gs * 100
                 if (pct_diff < 0) pct_diff = -pct_diff
-                assembly_qc = (pct_diff > 10) ? "FAIL" : "PASS"
+                assembly_qc = (pct_diff > 15) ? "FAIL" : "PASS"
 
             } else {
 
@@ -349,7 +349,18 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
 
             }
 
-            print $0, mean_cov, gs, assembler, lrge_qc, assembly_qc, contig_qc, species_qc
+            # COVERAGE QC
+            if (mean_cov == "NA") {
+                coverage_qc = "NA"
+            } else if (mean_cov < 35) {
+                coverage_qc = "FAIL"
+            } else if (mean_cov < 40) {
+                coverage_qc = "FLAG"
+            } else {
+                coverage_qc = "PASS"
+            }
+
+            print $0, mean_cov, gs, assembler, lrge_qc, coverage_qc, assembly_qc, contig_qc, species_qc
 
         }
     ' ${OUTPUTDIR}/lrge_gsize.tsv - > ${OUTPUTDIR}/summary.tsv
