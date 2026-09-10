@@ -135,32 +135,22 @@ else
 fi
 
 mkdir -p ${OUTPUTDIR}/KRAKEN/
-mkdir -p ${OUTPUTDIR}/FLYE/
+mkdir -p ${OUTPUTDIR}/ASSEMBLIES/
 
-# subsample reads to 100x depth ahead of classification/assembly
-mkdir -p ${OUTPUTDIR}/SUBSAMPLE/
+# permanent record of the LRGE genome size estimates for use in the summary
+echo -e "file\tlrge_genome_size" > ${OUTPUTDIR}/lrge_gsize.tsv
+
+# per-sample record of which assembler the Autocycler pipeline selected
+echo -e "file\tassembler" > ${OUTPUTDIR}/assembler.tsv
 
 while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
 
-    echo 'Subsampling sample' ${i} 'to 100x depth'
+    echo 'Estimating genome size for sample' ${i} 'with LRGE'
 
     GSIZE=$(lrge ${j})
-    echo -e "${i}\t${GSIZE}" >> ${OUTPUTDIR}/.temp_gsize
-    rasusa reads -g ${GSIZE} -c 100 -s 42 ${j} -o ${OUTPUTDIR}/SUBSAMPLE/${i}_100x.fastq.gz
-
-done < ${OUTPUTDIR}/.temp_manifest_filtered
-
-# build a permanent record of the LRGE genome size estimates for use in the summary
-echo -e "file\tlrge_genome_size" > ${OUTPUTDIR}/lrge_gsize.tsv
-cat ${OUTPUTDIR}/.temp_gsize >> ${OUTPUTDIR}/lrge_gsize.tsv
-
-# build manifest pointing to the subsampled reads
-awk -F '\t' -v dir="${OUTPUTDIR}/SUBSAMPLE" '{print $1"\t"dir"/"$1"_100x.fastq.gz"}' \
-    ${OUTPUTDIR}/.temp_manifest_filtered > ${OUTPUTDIR}/.temp_manifest_subsampled
-
-while IFS=$'\t' read -r i j || [[ -n "$i" ]]
-do
+    GSIZE=$(printf '%.0f' "${GSIZE}")            # --genome_size requires an integer
+    echo -e "${i}\t${GSIZE}" >> ${OUTPUTDIR}/lrge_gsize.tsv
 
     echo 'Starting Kraken2 classification of sample' ${i}
     echo 'Using reads in' ${j}
@@ -168,7 +158,7 @@ do
     kraken2 \
         --use-mpa-style \
         --use-names \
-        --threads 20 \
+        --threads 16 \
         --output /dev/null \
         --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
         ${j}
@@ -181,21 +171,44 @@ do
 
     # extract species counts from report - will use these after loop in summary output
     grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sed 's,.*s__,,' > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
-    
-    echo 'Starting Flye assembly of sample' ${i}
+
+    echo 'Starting Autocycler (Flye fallback) assembly of sample' ${i}
     echo 'Using reads in' ${j}
 
-    flye \
-        --nano-hq ${j} \
-        -o ${OUTPUTDIR}/FLYE/${i}/ \
-        -t 20
+    # NOTE: the output directory must not already exist - do not create it here
+    autocycler_and_flye.py \
+        --read-type ont_r10 \
+        --genome_size ${GSIZE} \
+        --threads 16 \
+        --jobs 4 \
+        --seed 42 \
+        ${j} \
+        ${OUTPUTDIR}/ASSEMBLIES/${i}
 
-    mv ${OUTPUTDIR}/FLYE/${i}/assembly.fasta ${OUTPUTDIR}/FLYE/${i}_assembly.fasta
+    if [ -f ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ]
+    then
 
-done < ${OUTPUTDIR}/.temp_manifest_subsampled
+        cp ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}_assembly.fasta
 
-# remove subsampled reads now that classification/assembly is complete
-rm -rf ${OUTPUTDIR}/SUBSAMPLE/
+        ASSEMBLER=$(grep 'Final assembly' ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.log | sed 's,.* ,,' | tr '[:upper:]' '[:lower:]')
+        [ -z "${ASSEMBLER}" ] && ASSEMBLER='NA'
+        echo -e "${i}\t${ASSEMBLER}" >> ${OUTPUTDIR}/assembler.tsv
+
+        # keep the plasmid summary alongside the assemblies (not merged into summary.tsv)
+        if [ -f ${OUTPUTDIR}/ASSEMBLIES/${i}/plassembler_summary.tsv ]
+        then
+            cp ${OUTPUTDIR}/ASSEMBLIES/${i}/plassembler_summary.tsv \
+                ${OUTPUTDIR}/ASSEMBLIES/${i}_plassembler_summary.tsv
+        fi
+
+    else
+
+        echo 'WARNING: no assembly produced for sample' ${i}
+        echo -e "${i}\tNA" >> ${OUTPUTDIR}/assembler.tsv
+
+    fi
+
+done < ${OUTPUTDIR}/.temp_manifest_filtered
 
 # summarising kraken2 species results
 echo -e "file\tspecies1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
@@ -241,14 +254,15 @@ do
 done
 
 echo 'Computing assembly stats'
-seqkit stats -abT ${OUTPUTDIR}/FLYE/*_assembly.fasta | \
+seqkit stats -abT ${OUTPUTDIR}/ASSEMBLIES/*_assembly.fasta | \
     cut -f 1,4,5,13 | \
     sed 's,_assembly.fasta,,' | \
     sed 's,num_seqs,contigs, ; s,sum_len,assembly_length, ; s,N50,assembly_N50,' > ${OUTPUTDIR}/assembly_stats.tsv
 
 csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
-    ${OUTPUTDIR}/KRAKEN/top3species.tsv | \
+    ${OUTPUTDIR}/KRAKEN/top3species.tsv \
+    ${OUTPUTDIR}/assembler.tsv | \
     gawk -F'\t' -v OFS='\t' '
         # first file: build a sample -> LRGE genome size lookup
         NR==FNR {
@@ -262,7 +276,7 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
         FNR==1 {
 
             for (c=1; c<=NF; c++) col[$c] = c
-            print $0, "mean_coverage", "predicted_genome_size", "assembler", "lrge_qc", "coverage_qc", "assembly_qc", "contig_qc", "species_qc"
+            print $0, "mean_coverage", "predicted_genome_size", "lrge_qc", "coverage_qc", "assembly_qc", "contig_qc", "species_qc"
             next
 
         }
@@ -293,8 +307,6 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
 
             # mean coverage: total read bases / LRGE predicted genome size
             mean_cov = (gs > 0) ? sum_len / gs : "NA"
-
-            assembler = "flye"
 
             # LRGE QC: flag implausible genome size estimates
             lrge_qc = (gs < 1800000 || gs > 6500000) ? "FLAG" : "PASS"
@@ -360,14 +372,14 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
                 coverage_qc = "PASS"
             }
 
-            print $0, mean_cov, gs, assembler, lrge_qc, coverage_qc, assembly_qc, contig_qc, species_qc
+            print $0, mean_cov, gs, lrge_qc, coverage_qc, assembly_qc, contig_qc, species_qc
 
         }
     ' ${OUTPUTDIR}/lrge_gsize.tsv - > ${OUTPUTDIR}/summary.tsv
 
-rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_manifest_subsampled ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2
-rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths ${OUTPUTDIR}/.temp_gsize
-rm -f ${OUTPUTDIR}/lrge_gsize.tsv
+rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2
+rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
+rm -f ${OUTPUTDIR}/lrge_gsize.tsv ${OUTPUTDIR}/assembler.tsv
 
 # print information about empty reads sets
 if [ "$SAMPLESREMOVED" -gt 0 ]
