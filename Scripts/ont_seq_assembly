@@ -18,8 +18,8 @@ NAME_FILE="$NAME_DIR/names"
 RUN_NAME="$1"
 RUN_DIR="$WORKING_DIR/$RUN_NAME"
 FASTQ_PASS_DIR="$RUN_DIR/fastq_pass"
-FASTQ_PASS_MERGED_DIR="$FASTQ_PASS_DIR/fastq_pass_merged"
-QC_DIR="$FASTQ_PASS_MERGED_DIR/qc"
+FASTQ_PASS_MERGED_DIR="$RUN_DIR/fastq_pass_merged"
+QC_DIR="$RUN_DIR/qc"
 
 if [ ! -d $SCRIPT_DIR ]; then
     echo "Directory $SCRIPT_DIR does not exist."

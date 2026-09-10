@@ -16,7 +16,7 @@ RENAME_FILE="$NAME_DIR/renaming.tsv"
 RUN_NAME="$1"
 RUN_DIR="$WORKING_DIR/$RUN_NAME"
 FASTQ_PASS_DIR="$RUN_DIR/fastq_pass"
-FASTQ_PASS_MERGED_DIR="$FASTQ_PASS_DIR/fastq_pass_merged"
+FASTQ_PASS_MERGED_DIR="$RUN_DIR/fastq_pass_merged"
 
 
 if [ ! -d $SCRIPT_DIR ]; then
