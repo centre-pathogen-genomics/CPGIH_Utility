@@ -452,12 +452,18 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
 echo 'Formatting summary report'
 
 # select/reorder the summary.tsv columns (dropping lrge_qc), give them more informative
-# headers, and save as .xlsx
-SUMMARYCOLS_OLD='file,reads,sum_len,min_len,avg_len,max_len,N50,contigs,assembly_length,assembly_N50,species1,species2,species3,assembler,predicted_genome_size,gsize_source,mean_coverage,coverage_qc,assembly_qc,contig_qc,species_qc'
-SUMMARYCOLS_NEW='sequencing ID,number of reads,sum length,minimum read length,average read length,maximum read length,read N50,number of contigs,assembly length,assembly N50,kraken top species call,kraken species call 2,kraken species call 3,final assembly tool used,predicted genome size,predicted genome size tool used,mean depth (sum length / predicted genome size),depth QC (mean coverage >40x = PASS; 35-40x = FLAG; <35x = FAIL),assembly QC (assembly length = predicted genome size +/- 15% PASS/FAIL),contig QC (>30 contigs = FAIL; 11-30 contigs = FLAG; <=10 contigs = PASS),species QC (kraken top species call >80% = PASS; top 3 calls same genus <80% = FAIL; else FLAG)'
+# headers, add blank spacer columns between logical groups, and save as .xlsx
+SUMMARYCOLS_ORDER='file,reads,sum_len,min_len,avg_len,max_len,N50,species1,species2,species3,gsize_source,predicted_genome_size,mean_coverage,assembler,contigs,assembly_length,assembly_N50,coverage_qc,species_qc,assembly_qc,contig_qc'
+SUMMARYCOLS_NEW='sequencing ID,number of reads,sum length,minimum read length,average read length,maximum read length,read N50,kraken top species call,kraken species call 2,kraken species call 3,predicted genome size tool used,predicted genome size,mean depth (sum length / predicted genome size),final assembly tool used,number of contigs,assembly length,assembly N50,depth QC (mean coverage >40x = PASS; 35-40x = FLAG; <35x = FAIL),species QC (kraken top species call >80% = PASS; top 3 calls same genus <80% = FAIL; else FLAG),assembly QC (assembly length = predicted genome size +/- 15% PASS/FAIL),contig QC (>30 contigs = FAIL; 11-30 contigs = FLAG; <=10 contigs = PASS)'
 
-csvtk cut -t -f "${SUMMARYCOLS_OLD}" ${OUTPUTDIR}/summary.tsv | \
-    csvtk rename -t -f "${SUMMARYCOLS_OLD}" -n "${SUMMARYCOLS_NEW}" | \
+# spacer columns land after these fields (1-indexed positions 8, 12, 16, 21 once inserted)
+csvtk cut -t -f "${SUMMARYCOLS_ORDER}" ${OUTPUTDIR}/summary.tsv | \
+    csvtk mutate2 -t -e "''" -n blank1 --after N50 | \
+    csvtk mutate2 -t -e "''" -n blank2 --after species3 | \
+    csvtk mutate2 -t -e "''" -n blank3 --after mean_coverage | \
+    csvtk mutate2 -t -e "''" -n blank4 --after assembly_N50 | \
+    csvtk rename -t -f "${SUMMARYCOLS_ORDER}" -n "${SUMMARYCOLS_NEW}" | \
+    awk -F'\t' -v OFS='\t' 'NR==1 {$8=""; $12=""; $16=""; $21=""} {print}' | \
     csvtk csv2xlsx -t -f -o ${OUTPUTDIR}/summary.xlsx
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2
