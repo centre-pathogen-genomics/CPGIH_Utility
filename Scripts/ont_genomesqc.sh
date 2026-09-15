@@ -6,6 +6,9 @@ NAMES=$1
 INPUTDIR=$2
 OUTPUTDIR=$3
 
+# NCBI per-species genome length stats, used to sanity-check the LRGE genome size estimate
+GSIZEDB="${CONDA_PREFIX}/stats_genomelength_ncbi.tsv"
+
 # fail if errors are detected - only using during QC
 set -e
 
@@ -15,7 +18,29 @@ then
 
     echo "Sample Names Input Does Not Exist. Mission Aborted."
     exit 1
-    
+
+fi
+
+# ensure the NCBI genome size database exists - attempt to download it if missing
+if [ ! -f "${GSIZEDB}" ]
+then
+
+    echo "NCBI genome size database not found at ${GSIZEDB} - attempting to download it"
+
+    if curl -fsSL -o "${GSIZEDB}.tmp" "https://zenodo.org/records/21278902/files/stats_genomelength_ncbi.tsv"
+    then
+
+        mv "${GSIZEDB}.tmp" "${GSIZEDB}"
+        echo "Downloaded NCBI genome size database to ${GSIZEDB}"
+
+    else
+
+        rm -f "${GSIZEDB}.tmp"
+        echo "Failed to download NCBI genome size database. Mission Aborted."
+        exit 1
+
+    fi
+
 fi
 
 # ensure input directory exists
@@ -137,11 +162,14 @@ fi
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/ASSEMBLIES/
 
-# permanent record of the LRGE genome size estimates for use in the summary
+# permanent record of the (possibly NCBI-corrected) genome size estimates for use in the summary
 echo -e "file\tlrge_genome_size" > ${OUTPUTDIR}/lrge_gsize.tsv
 
 # per-sample record of which assembler the Autocycler pipeline selected
 echo -e "file\tassembler" > ${OUTPUTDIR}/assembler.tsv
+
+# per-sample record of whether the genome size came from LRGE or the NCBI species median
+echo -e "file\tgsize_source" > ${OUTPUTDIR}/gsize_source.tsv
 
 while IFS=$'\t' read -r i j || [[ -n "$i" ]]
 do
@@ -150,7 +178,6 @@ do
 
     GSIZE=$(lrge ${j})
     GSIZE=$(printf '%.0f' "${GSIZE}")            # --genome_size requires an integer
-    echo -e "${i}\t${GSIZE}" >> ${OUTPUTDIR}/lrge_gsize.tsv
 
     echo 'Starting Kraken2 classification of sample' ${i}
     echo 'Using reads in' ${j}
@@ -171,6 +198,50 @@ do
 
     # extract species counts from report - will use these after loop in summary output
     grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sed 's,.*s__,,' > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
+
+    # sanity-check the LRGE estimate against the NCBI median genome size for the
+    # most abundant classified species; fall back to the NCBI median if LRGE looks wrong
+    TOPSPECIES=$(sort -t$'\t' -k2,2nr ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv | head -n 1 | cut -f1)
+
+    if [ -n "${TOPSPECIES}" ]
+    then
+
+        DBMEDIAN=$(awk -F'\t' -v sp="s__${TOPSPECIES}" '$1==sp {print $6; exit}' "${GSIZEDB}")
+
+    else
+
+        DBMEDIAN=""
+
+    fi
+
+    if [ -n "${DBMEDIAN}" ]
+    then
+
+        DBMEDIAN=$(printf '%.0f' "${DBMEDIAN}")
+        PCTDIFF=$(awk -v a="${GSIZE}" -v b="${DBMEDIAN}" 'BEGIN{d=(a-b)/b*100; if (d<0) d=-d; print d}')
+        OUTOFRANGE=$(awk -v p="${PCTDIFF}" 'BEGIN{print (p>15)?"yes":"no"}')
+
+        if [ "${OUTOFRANGE}" = "yes" ]
+        then
+
+            echo "LRGE genome size estimate for ${i} (${GSIZE} bp) is more than 15% from the NCBI median for ${TOPSPECIES} (${DBMEDIAN} bp) - using NCBI median instead"
+            GSIZE=${DBMEDIAN}
+            echo -e "${i}\tncbi_median" >> ${OUTPUTDIR}/gsize_source.tsv
+
+        else
+
+            echo -e "${i}\tlrge" >> ${OUTPUTDIR}/gsize_source.tsv
+
+        fi
+
+    else
+
+        echo "No NCBI genome size database entry found for '${TOPSPECIES}' (sample ${i}) - keeping unverified LRGE estimate"
+        echo -e "${i}\tlrge_unverified" >> ${OUTPUTDIR}/gsize_source.tsv
+
+    fi
+
+    echo -e "${i}\t${GSIZE}" >> ${OUTPUTDIR}/lrge_gsize.tsv
 
     echo 'Starting Autocycler (Flye fallback) assembly of sample' ${i}
     echo 'Using reads in' ${j}
@@ -262,7 +333,8 @@ seqkit stats -abT ${OUTPUTDIR}/ASSEMBLIES/*_assembly.fasta | \
 csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv \
-    ${OUTPUTDIR}/assembler.tsv | \
+    ${OUTPUTDIR}/assembler.tsv \
+    ${OUTPUTDIR}/gsize_source.tsv | \
     gawk -F'\t' -v OFS='\t' '
         # first file: build a sample -> LRGE genome size lookup
         NR==FNR {
@@ -379,7 +451,7 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2
 rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
-rm -f ${OUTPUTDIR}/lrge_gsize.tsv ${OUTPUTDIR}/assembler.tsv
+rm -f ${OUTPUTDIR}/lrge_gsize.tsv ${OUTPUTDIR}/assembler.tsv ${OUTPUTDIR}/gsize_source.tsv
 
 # print information about empty reads sets
 if [ "$SAMPLESREMOVED" -gt 0 ]
