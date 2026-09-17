@@ -248,7 +248,7 @@ do
 
     # NOTE: the output directory must not already exist - do not create it here
     autocycler_and_flye.py \
-        --read-type ont_r10 \
+        --read_type ont_r10 \
         --genome_size ${GSIZE} \
         --threads 16 \
         --jobs 4 \
