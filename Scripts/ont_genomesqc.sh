@@ -397,7 +397,9 @@ csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
             }
 
             # CONTIG QC
-            if (contigs > 30) {
+            if (contigs == 0) {
+                contig_qc = "FAIL"
+            } else if (contigs > 30) {
                 contig_qc = "FAIL"
             } else if (contigs > 10) {
                 contig_qc = "FLAG"
