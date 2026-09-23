@@ -185,7 +185,7 @@ do
     kraken2 \
         --use-mpa-style \
         --use-names \
-        --threads 16 \
+        --threads 8 \
         --output /dev/null \
         --report ${OUTPUTDIR}/KRAKEN/${i}_report.tsv \
         ${j}
@@ -250,7 +250,7 @@ do
     autocycler_and_flye.py \
         --read_type ont_r10 \
         --genome_size ${GSIZE} \
-        --threads 16 \
+        --threads 8 \
         --jobs 4 \
         --seed 42 \
         ${j} \
