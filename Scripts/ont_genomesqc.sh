@@ -206,11 +206,14 @@ do
     if [ -n "${TOPSPECIES}" ]
     then
 
-        DBMEDIAN=$(awk -F'\t' -v sp="s__${TOPSPECIES}" '$1==sp {print $6; exit}' "${GSIZEDB}")
+        # prefer median of complete genomes (col 10); fall back to median of all genomes (col 6),
+        # which is often deflated by incomplete assemblies/MAGs
+        read -r DBMEDIAN DBMEDIANTYPE < <(awk -F'\t' -v sp="s__${TOPSPECIES}" '$1==sp {print ($10 != "" ? $10" complete" : $6" all"); exit}' "${GSIZEDB}") || true   # read returns 1 if species not in DB
 
     else
 
         DBMEDIAN=""
+        DBMEDIANTYPE=""
 
     fi
 
@@ -224,9 +227,9 @@ do
         if [ "${OUTOFRANGE}" = "yes" ]
         then
 
-            echo "LRGE genome size estimate for ${i} (${GSIZE} bp) is more than 15% from the NCBI median for ${TOPSPECIES} (${DBMEDIAN} bp) - using NCBI median instead"
+            echo "LRGE genome size estimate for ${i} (${GSIZE} bp) is more than 15% from the NCBI median (${DBMEDIANTYPE} genomes) for ${TOPSPECIES} (${DBMEDIAN} bp) - using NCBI median instead"
             GSIZE=${DBMEDIAN}
-            echo -e "${i}\tncbi_median" >> ${OUTPUTDIR}/gsize_source.tsv
+            echo -e "${i}\tncbi_median_${DBMEDIANTYPE}" >> ${OUTPUTDIR}/gsize_source.tsv
 
         else
 
