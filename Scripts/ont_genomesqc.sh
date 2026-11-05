@@ -7,7 +7,10 @@ INPUTDIR=$2
 OUTPUTDIR=$3
 
 # NCBI per-species genome length stats, used to sanity-check the LRGE genome size estimate
-GSIZEDB="${CONDA_PREFIX}/stats_genomelength_ncbi.tsv"
+# built by Scripts/build_ncbi_genome_size_db.py and stored in the repo's data/ directory
+# set GSIZEDB in the environment to use a different file
+SCRIPTDIR=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
+GSIZEDB="${GSIZEDB:-${SCRIPTDIR}/../data/prok_species_genome_size_stats.tsv}"
 
 # fail if errors are detected - only using during QC
 set -e
@@ -21,25 +24,13 @@ then
 
 fi
 
-# ensure the NCBI genome size database exists - attempt to download it if missing
+# ensure the NCBI genome size database exists
 if [ ! -f "${GSIZEDB}" ]
 then
 
-    echo "NCBI genome size database not found at ${GSIZEDB} - attempting to download it"
-
-    if curl -fsSL -o "${GSIZEDB}.tmp" "https://zenodo.org/records/21278902/files/stats_genomelength_ncbi.tsv"
-    then
-
-        mv "${GSIZEDB}.tmp" "${GSIZEDB}"
-        echo "Downloaded NCBI genome size database to ${GSIZEDB}"
-
-    else
-
-        rm -f "${GSIZEDB}.tmp"
-        echo "Failed to download NCBI genome size database. Mission Aborted."
-        exit 1
-
-    fi
+    echo "NCBI genome size database not found at ${GSIZEDB}. Mission Aborted."
+    echo "Expected in the repo's data/ directory (or set GSIZEDB to its location)."
+    exit 1
 
 fi
 
@@ -206,9 +197,16 @@ do
     if [ -n "${TOPSPECIES}" ]
     then
 
-        # prefer median of complete genomes (col 10); fall back to median of all genomes (col 6),
-        # which is often deflated by incomplete assemblies/MAGs
-        read -r DBMEDIAN DBMEDIANTYPE < <(awk -F'\t' -v sp="s__${TOPSPECIES}" '$1==sp {print ($10 != "" ? $10" complete" : $6" all"); exit}' "${GSIZEDB}") || true   # read returns 1 if species not in DB
+        # prefer median of complete genomes; fall back to median of all genomes,
+        # which is more affected by incomplete assemblies/MAGs (columns looked up by header name)
+        read -r DBMEDIAN DBMEDIANTYPE < <(awk -F'\t' -v sp="${TOPSPECIES}" '
+            NR==1 {for (c=1; c<=NF; c++) col[$c]=c; next}
+            $(col["species"])==sp {
+                mc = $(col["median_complete"]); ma = $(col["median_all"])
+                if ($(col["n_complete"]) > 0 && mc != "NA") print mc" complete"
+                else if (ma != "NA") print ma" all"
+                exit
+            }' "${GSIZEDB}") || true   # read returns 1 if species not in DB
 
     else
 
@@ -263,6 +261,7 @@ do
     then
 
         cp ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}_assembly.fasta
+        cp ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.gfa ${OUTPUTDIR}/ASSEMBLIES/${i}_assembly.gfa
 
         ASSEMBLER=$(grep 'Final assembly' ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.log | sed 's,.* ,,' | tr '[:upper:]' '[:lower:]')
         [ -z "${ASSEMBLER}" ] && ASSEMBLER='NA'
@@ -271,8 +270,7 @@ do
         # keep the plasmid summary alongside the assemblies (not merged into summary.tsv)
         if [ -f ${OUTPUTDIR}/ASSEMBLIES/${i}/plassembler_summary.tsv ]
         then
-            cp ${OUTPUTDIR}/ASSEMBLIES/${i}/plassembler_summary.tsv \
-                ${OUTPUTDIR}/ASSEMBLIES/${i}_plassembler_summary.tsv
+            cp ${OUTPUTDIR}/ASSEMBLIES/${i}/plassembler_summary.tsv ${OUTPUTDIR}/ASSEMBLIES/${i}_plassembler_summary.tsv
         fi
 
     else
