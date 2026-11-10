@@ -105,13 +105,15 @@ seqkit stats -abT --infile-list ${OUTPUTDIR}/.temp_paths | \
     sed 's,num_seqs,reads,' > ${OUTPUTDIR}/.read_stats
 
 # identify empty read sets and remove from analysis loop
-awk -F '\t' '$2 == 0' ${OUTPUTDIR}/.read_stats | cut -f 1 > ${OUTPUTDIR}/.emptysamples
+csvtk filter -t -f 'reads=0' ${OUTPUTDIR}/.read_stats | \
+    csvtk cut -t -f file | \
+    csvtk del-header -t > ${OUTPUTDIR}/.emptysamples
 
 if [ -s ${OUTPUTDIR}/.emptysamples ]
 then
     
-    awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
-        ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
+    csvtk grep -t -H -f 1 -v -P ${OUTPUTDIR}/.emptysamples \
+        ${OUTPUTDIR}/.temp_manifest > ${OUTPUTDIR}/.temp_manifest_filtered
 
 else
    
@@ -120,17 +122,7 @@ else
 fi
 
 # remove empty read sets from read stats file
-if [ -s ${OUTPUTDIR}/.emptysamples ]
-then
-
-    awk -F '\t' 'NR==FNR {exclude[$1]; next} !($1 in exclude)' \
-        ${OUTPUTDIR}/.emptysamples ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
-
-else
-
-    cp ${OUTPUTDIR}/.read_stats ${OUTPUTDIR}/read_stats.tsv
-    
-fi
+csvtk filter -t -f 'reads>0' ${OUTPUTDIR}/.read_stats > ${OUTPUTDIR}/read_stats.tsv
 
 # print information about empty reads sets
 SAMPLESREMOVED=$(wc -l < "${OUTPUTDIR}/.emptysamples")
@@ -182,10 +174,9 @@ do
         ${j}
 
     # pull out the 10 most abundant species from the report
-    awk -F'\t' '$1 ~ /s__/ {gsub(/^ +| +$/, "", $0); print $0}' \
-        ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | \
-            sort -t$'\t' -k2,2nr | \
-                head -n 10 > ${OUTPUTDIR}/KRAKEN/${i}_report_top10species.tsv
+    csvtk grep -t -H -f 1 -r -p 's__' ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | \
+        csvtk sort -t -H -k 2:nr | \
+            head -n 10 > ${OUTPUTDIR}/KRAKEN/${i}_report_top10species.tsv
 
     # extract species counts from report - will use these after loop in summary output
     grep s__ ${OUTPUTDIR}/KRAKEN/${i}_report.tsv | sed 's,.*s__,,' > ${OUTPUTDIR}/KRAKEN/${i}_report_species.tsv
@@ -199,14 +190,21 @@ do
 
         # prefer median of complete genomes; fall back to median of all genomes,
         # which is more affected by incomplete assemblies/MAGs (columns looked up by header name)
-        read -r DBMEDIAN DBMEDIANTYPE < <(awk -F'\t' -v sp="${TOPSPECIES}" '
-            NR==1 {for (c=1; c<=NF; c++) col[$c]=c; next}
-            $(col["species"])==sp {
-                mc = $(col["median_complete"]); ma = $(col["median_all"])
-                if ($(col["n_complete"]) > 0 && mc != "NA") print mc" complete"
-                else if (ma != "NA") print ma" all"
-                exit
-            }' "${GSIZEDB}") || true   # read returns 1 if species not in DB
+        DBMEDIAN=""
+        DBMEDIANTYPE=""
+        read -r NCOMPLETE MEDCOMPLETE MEDALL < <(
+            csvtk grep -t -f species -p "${TOPSPECIES}" "${GSIZEDB}" | \
+                csvtk cut -t -f n_complete,median_complete,median_all | \
+                    csvtk del-header -t | \
+                        head -n 1) || true   # read returns 1 if species not in DB
+
+        if [ -n "${NCOMPLETE}" ] && [ "${NCOMPLETE}" != "NA" ] && [ "${NCOMPLETE}" -gt 0 ] && [ "${MEDCOMPLETE}" != "NA" ]
+        then
+            DBMEDIAN=${MEDCOMPLETE}; DBMEDIANTYPE='complete'
+        elif [ -n "${MEDALL}" ] && [ "${MEDALL}" != "NA" ]
+        then
+            DBMEDIAN=${MEDALL}; DBMEDIANTYPE='all'
+        fi
 
     else
 
@@ -219,10 +217,10 @@ do
     then
 
         DBMEDIAN=$(printf '%.0f' "${DBMEDIAN}")
-        PCTDIFF=$(awk -v a="${GSIZE}" -v b="${DBMEDIAN}" 'BEGIN{d=(a-b)/b*100; if (d<0) d=-d; print d}')
-        OUTOFRANGE=$(awk -v p="${PCTDIFF}" 'BEGIN{print (p>15)?"yes":"no"}')
+        # integer arithmetic: |GSIZE - DBMEDIAN| / DBMEDIAN > 15%
+        ABSDIFF=$(( GSIZE - DBMEDIAN )); ABSDIFF=${ABSDIFF#-}
 
-        if [ "${OUTOFRANGE}" = "yes" ]
+        if (( ABSDIFF * 100 > DBMEDIAN * 15 ))
         then
 
             echo "LRGE genome size estimate for ${i} (${GSIZE} bp) is more than 15% from the NCBI median (${DBMEDIANTYPE} genomes) for ${TOPSPECIES} (${DBMEDIAN} bp) - using NCBI median instead"
@@ -282,46 +280,27 @@ do
 
 done < ${OUTPUTDIR}/.temp_manifest_filtered
 
-# summarising kraken2 species results
+# summarising kraken2 species results: top 3 species per sample as "species (percent%)",
+# padded with "NA (0.00%)" when fewer than 3 species (or no reads) were classified
 echo -e "file\tspecies1\tspecies2\tspecies3" > ${OUTPUTDIR}/KRAKEN/top3species.tsv
-# Loop through each report file
 for file in ${OUTPUTDIR}/KRAKEN/*_report_species.tsv
 do
 
     sample=$(basename "$file" _report_species.tsv)
+    TOTAL=$(csvtk summary -t -H -f 2:sum "$file" 2>/dev/null || true)
 
-    gawk -v sample="$sample" -F'\t' '
-        {
-
-            sum += $2
-            data[NR] = $1
-            counts[NR] = $2
-
-        }
-        END {
-        output = sample
-        if (sum == 0) {
-        
-            output = output "\tNA (0.00%)\tNA (0.00%)\tNA (0.00%)"
-            
-            } else {
-
-                n = asorti(counts, idx, "@val_num_desc")
-
-                for (e = 1; e <= 3; e++) {
-                    if (e <= n) {
-                        orig = idx[e]
-                        species_name = data[orig]
-                        percent = (counts[orig] / sum) * 100
-                        output = output sprintf("\t%s (%.2f%%)", species_name, percent)
-                    } else {
-                        output = output "\tNA (0.00%)"
-                    }
-                }
-            }
-            print output
-        }
-    ' "$file" >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
+    {
+        if [ -n "${TOTAL}" ] && [ "${TOTAL}" != "0.00" ]
+        then
+            csvtk sort -t -H -k 2:nr "$file" | \
+                head -n 3 | \
+                    csvtk mutate2 -t -H -w 2 -e "\$2 / ${TOTAL} * 100" | \
+                        csvtk replace -t -H -f 3 -p '^(.*)$' -r '($1%)' | \
+                            csvtk cut -t -H -f 1,3 | \
+                                tr '\t' ' '
+        fi
+        printf 'NA (0.00%%)\nNA (0.00%%)\nNA (0.00%%)\n'
+    } | head -n 3 | paste -s -d $'\t' - | sed "s,^,${sample}\t," >> ${OUTPUTDIR}/KRAKEN/top3species.tsv
 
 done
 
@@ -331,137 +310,59 @@ seqkit stats -abT ${OUTPUTDIR}/ASSEMBLIES/*_assembly.fasta | \
     sed 's,_assembly.fasta,,' | \
     sed 's,num_seqs,contigs, ; s,sum_len,assembly_length, ; s,N50,assembly_N50,' > ${OUTPUTDIR}/assembly_stats.tsv
 
+# join all per-sample tables, then compute mean coverage and the QC calls
+#   lrge_qc:     FLAG if predicted genome size is outside 1.8-6.5 Mb
+#   coverage_qc: mean coverage <35x FAIL; 35-40x FLAG; >=40x PASS
+#   assembly_qc: FAIL if assembly length is more than 15% off the predicted genome size
+#   contig_qc:   0 or >30 contigs FAIL; 11-30 FLAG; <=10 PASS
+#   species_qc:  top-hit genus (summed over top 3 calls) <80% FAIL; top species <80% FLAG; else PASS
 csvtk join -t --left-join --na 0 -f file ${OUTPUTDIR}/read_stats.tsv \
     ${OUTPUTDIR}/assembly_stats.tsv \
     ${OUTPUTDIR}/KRAKEN/top3species.tsv \
     ${OUTPUTDIR}/assembler.tsv \
-    ${OUTPUTDIR}/gsize_source.tsv | \
-    gawk -F'\t' -v OFS='\t' '
-        # first file: build a sample -> LRGE genome size lookup
-        NR==FNR {
-
-            if (FNR > 1) gsize[$1] = $2
-            next
-
-        }
-
-        # second file (joined summary from stdin): compute new columns
-        FNR==1 {
-
-            for (c=1; c<=NF; c++) col[$c] = c
-            print $0, "mean_coverage", "predicted_genome_size", "lrge_qc", "coverage_qc", "assembly_qc", "contig_qc", "species_qc"
-            next
-
-        }
-
-        function species_name(str) {
-            match(str, /^(.*) \([0-9.]+%\)$/, m)
-            return m[1]
-        }
-
-        function species_pct(str) {
-            match(str, /^.* \(([0-9.]+)%\)$/, m)
-            return m[1] + 0
-        }
-
-        function species_genus(str,    parts) {
-            split(str, parts, " ")
-            return parts[1]
-        }
-
-        {
-
-            sum_len = $(col["sum_len"])
-            contigs = $(col["contigs"])
-            assembly_length = $(col["assembly_length"])
-            sp1 = $(col["species1"]); sp2 = $(col["species2"]); sp3 = $(col["species3"])
-
-            gs = ($1 in gsize) ? gsize[$1] + 0 : 0
-
-            # mean coverage: total read bases / LRGE predicted genome size
-            mean_cov = (gs > 0) ? sum_len / gs : "NA"
-
-            # LRGE QC: flag implausible genome size estimates
-            lrge_qc = (gs < 1800000 || gs > 6500000) ? "FLAG" : "PASS"
-
-            # ASSEMBLY QC: fail if assembly length is more than 15% off the LRGE estimate
-            if (gs > 0) {
-
-                pct_diff = (assembly_length - gs) / gs * 100
-                if (pct_diff < 0) pct_diff = -pct_diff
-                assembly_qc = (pct_diff > 15) ? "FAIL" : "PASS"
-
-            } else {
-
-                assembly_qc = "NA"
-
-            }
-
-            # CONTIG QC
-            if (contigs == 0) {
-                contig_qc = "FAIL"
-            } else if (contigs > 30) {
-                contig_qc = "FAIL"
-            } else if (contigs > 10) {
-                contig_qc = "FLAG"
-            } else {
-                contig_qc = "PASS"
-            }
-
-            # SPECIES QC: based on top3 species and the genus of the top hit
-            name1 = species_name(sp1)
-
-            if (name1 == "NA") {
-
-                species_qc = "FAIL"
-
-            } else {
-
-                pct1 = species_pct(sp1)
-                name2 = species_name(sp2); pct2 = species_pct(sp2)
-                name3 = species_name(sp3); pct3 = species_pct(sp3)
-
-                genus1 = species_genus(name1)
-                genus_sum = pct1
-                if (name2 != "NA" && species_genus(name2) == genus1) genus_sum += pct2
-                if (name3 != "NA" && species_genus(name3) == genus1) genus_sum += pct3
-
-                if (genus_sum < 80) {
-                    species_qc = "FAIL"
-                } else if (pct1 < 80) {
-                    species_qc = "FLAG"
-                } else {
-                    species_qc = "PASS"
-                }
-
-            }
-
-            # COVERAGE QC
-            if (mean_cov == "NA") {
-                coverage_qc = "NA"
-            } else if (mean_cov < 35) {
-                coverage_qc = "FAIL"
-            } else if (mean_cov < 40) {
-                coverage_qc = "FLAG"
-            } else {
-                coverage_qc = "PASS"
-            }
-
-            print $0, mean_cov, gs, lrge_qc, coverage_qc, assembly_qc, contig_qc, species_qc
-
-        }
-    ' ${OUTPUTDIR}/lrge_gsize.tsv - > ${OUTPUTDIR}/summary.tsv
+    ${OUTPUTDIR}/gsize_source.tsv \
+    ${OUTPUTDIR}/lrge_gsize.tsv | \
+    csvtk rename -t -f lrge_genome_size -n predicted_genome_size | \
+    csvtk mutate2 -t -n mean_coverage -w 2 \
+        -e '$predicted_genome_size > 0 ? $sum_len / $predicted_genome_size : "NA"' | \
+    csvtk mutate2 -t -n lrge_qc \
+        -e '$predicted_genome_size < 1800000 || $predicted_genome_size > 6500000 ? "FLAG" : "PASS"' | \
+    csvtk mutate2 -t -n coverage_qc \
+        -e '$predicted_genome_size <= 0 ? "NA" : ($sum_len < 35 * $predicted_genome_size ? "FAIL" : ($sum_len < 40 * $predicted_genome_size ? "FLAG" : "PASS"))' | \
+    csvtk mutate2 -t -n assembly_qc \
+        -e '$predicted_genome_size <= 0 ? "NA" : ($assembly_length > 1.15 * $predicted_genome_size || $assembly_length < 0.85 * $predicted_genome_size ? "FAIL" : "PASS")' | \
+    csvtk mutate2 -t -n contig_qc \
+        -e '$contigs == 0 || $contigs > 30 ? "FAIL" : ($contigs > 10 ? "FLAG" : "PASS")' | \
+    csvtk mutate -t -f species1 -n tmp_name1 -p '^(.*) \([0-9.]+%\)$' --na | \
+    csvtk mutate -t -f species1 -n tmp_pct1 -p '\(([0-9.]+)%\)$' | \
+    csvtk mutate -t -f species2 -n tmp_pct2 -p '\(([0-9.]+)%\)$' | \
+    csvtk mutate -t -f species3 -n tmp_pct3 -p '\(([0-9.]+)%\)$' | \
+    csvtk mutate -t -f species1 -n tmp_genus1 -p '^(\S+) ' | \
+    csvtk mutate -t -f species2 -n tmp_genus2 -p '^(\S+) ' | \
+    csvtk mutate -t -f species3 -n tmp_genus3 -p '^(\S+) ' | \
+    csvtk mutate2 -t -n tmp_genus_pct -w 2 \
+        -e '$tmp_pct1 + ($tmp_genus2 == $tmp_genus1 ? $tmp_pct2 : 0) + ($tmp_genus3 == $tmp_genus1 ? $tmp_pct3 : 0)' | \
+    csvtk mutate2 -t -n species_qc \
+        -e '$tmp_name1 == "NA" || $tmp_name1 == "" ? "FAIL" : ($tmp_genus_pct < 80 ? "FAIL" : ($tmp_pct1 < 80 ? "FLAG" : "PASS"))' \
+    > ${OUTPUTDIR}/.temp_summary.tsv   # tmp_* helper columns are dropped when formatting below
 
 echo 'Formatting summary report'
 
-# select/reorder the summary.tsv columns (dropping lrge_qc), give them more informative
-# headers, and save as .xlsx
+# select/reorder the raw summary columns (dropping lrge_qc) and give them informative headers.
+# summary.tsv uses the same headers as summary.xlsx, minus the parenthesised details and with
+# spaces replaced by underscores
 SUMMARYCOLS_ORDER='file,reads,sum_len,min_len,avg_len,max_len,N50,species1,species2,species3,gsize_source,predicted_genome_size,mean_coverage,assembler,contigs,assembly_length,assembly_N50,coverage_qc,species_qc,assembly_qc,contig_qc'
-SUMMARYCOLS_NEW='sequencing ID,number of reads,sum length,minimum read length,average read length,maximum read length,read N50,kraken top species call,kraken species call 2,kraken species call 3,predicted genome size tool used,predicted genome size,mean depth (sum length / predicted genome size),final assembly tool used,number of contigs,assembly length,assembly N50,depth QC (mean coverage >40x = PASS; 35-40x = FLAG; <35x = FAIL),species QC (kraken top species call >80% = PASS; top 3 calls same genus <80% = FAIL; else FLAG),assembly QC (assembly length = predicted genome size +/- 15% PASS/FAIL),contig QC (>30 contigs = FAIL; 11-30 contigs = FLAG; <=10 contigs = PASS)'
+SUMMARYCOLS_TSV='sequencing_ID,number_of_reads,sum_length,minimum_read_length,average_read_length,maximum_read_length,read_N50,kraken_top_species_call,kraken_species_call_2,kraken_species_call_3,predicted_genome_size_tool_used,predicted_genome_size,mean_depth,final_assembly_tool_used,number_of_contigs,assembly_length,assembly_N50,depth_QC,species_QC,assembly_QC,contig_QC'
+SUMMARYCOLS_XLSX='sequencing ID,number of reads,sum length,minimum read length,average read length,maximum read length,read N50,kraken top species call,kraken species call 2,kraken species call 3,predicted genome size tool used,predicted genome size,mean depth (sum length / predicted genome size),final assembly tool used,number of contigs,assembly length,assembly N50,depth QC (mean coverage >40x = PASS; 35-40x = FLAG; <35x = FAIL),species QC (kraken top species call >80% = PASS; top 3 calls same genus <80% = FAIL; else FLAG),assembly QC (assembly length = predicted genome size +/- 15% PASS/FAIL),contig QC (>30 contigs = FAIL; 11-30 contigs = FLAG; <=10 contigs = PASS)'
 
-csvtk cut -t -f "${SUMMARYCOLS_ORDER}" ${OUTPUTDIR}/summary.tsv | \
-    csvtk rename -t -f "${SUMMARYCOLS_ORDER}" -n "${SUMMARYCOLS_NEW}" | \
+csvtk cut -t -f "${SUMMARYCOLS_ORDER}" ${OUTPUTDIR}/.temp_summary.tsv | \
+    csvtk rename -t -f "${SUMMARYCOLS_ORDER}" -n "${SUMMARYCOLS_TSV}" \
+    > ${OUTPUTDIR}/summary.tsv
+
+csvtk rename -t -f "${SUMMARYCOLS_TSV}" -n "${SUMMARYCOLS_XLSX}" ${OUTPUTDIR}/summary.tsv | \
     csvtk csv2xlsx -t -f -o ${OUTPUTDIR}/summary.xlsx
+
+rm -f ${OUTPUTDIR}/.temp_summary.tsv
 
 rm -f ${OUTPUTDIR}/.temp_manifest ${OUTPUTDIR}/.temp_manifest_filtered ${OUTPUTDIR}/.temp_paths1 ${OUTPUTDIR}/.temp_paths2
 rm -f ${OUTPUTDIR}/.temp_manifest.tsv ${OUTPUTDIR}/.temp_paths
