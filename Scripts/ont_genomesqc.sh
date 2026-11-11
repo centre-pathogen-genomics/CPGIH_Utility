@@ -164,7 +164,7 @@ do
     echo 'Estimating genome size for sample' ${i} 'with LRGE'
 
     # estimate goes to stdout; the log (incl. the 95% CI) goes to stderr - keep it and echo it
-    GSIZE=$(lrge ${j} 2> ${OUTPUTDIR}/LRGE/${i}_lrge.log)
+    GSIZE=$(lrge --threads 8 --seed 42 ${j} 2>${OUTPUTDIR}/LRGE/${i}_lrge.log)
     cat ${OUTPUTDIR}/LRGE/${i}_lrge.log >&2
     GSIZE=$(printf '%.0f' "${GSIZE}")            # --genome_size requires an integer
 
