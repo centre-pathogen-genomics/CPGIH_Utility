@@ -44,6 +44,15 @@ from pathlib import Path
 
 import pandas as pd
 
+# VERSION: one repo-wide number, stored in version.txt next to this script.
+# Bump it (MAJOR = breaking change to inputs/outputs, MINOR = new feature, PATCH = bug fix) whenever any script changes
+VERSION_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'version.txt')
+try:
+    with open(VERSION_FILE) as fh:
+        VERSION = fh.read().strip()
+except OSError:
+    VERSION = 'unknown (version.txt not found)'
+
 TAXA = {'bacteria': 2, 'archaea': 2157}
 FIELDS = ['accession', 'organism-name', 'organism-tax-id', 'assminfo-level', 'assmstats-total-ungapped-len',
           'checkm-completeness', 'checkm-contamination']
@@ -236,6 +245,7 @@ def main():
     parser.add_argument('--min_completeness', type=float, default=90, help='CheckM completeness threshold (default 90)')
     parser.add_argument('--max_contamination', type=float, default=5, help='CheckM contamination threshold (default 5)')
     parser.add_argument('--api_key', default=os.environ.get('NCBI_API_KEY'), help='NCBI API key (default $NCBI_API_KEY)')
+    parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {VERSION}')
     args = parser.parse_args()
 
     workdir = Path(args.workdir).resolve()

@@ -2,6 +2,16 @@
 
 import argparse
 import gzip
+import os
+
+# VERSION: one repo-wide number, stored in version.txt next to this script.
+# Bump it (MAJOR = breaking change to inputs/outputs, MINOR = new feature, PATCH = bug fix) whenever any script changes
+VERSION_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'version.txt')
+try:
+    with open(VERSION_FILE) as fh:
+        VERSION = fh.read().strip()
+except OSError:
+    VERSION = 'unknown (version.txt not found)'
 
 def filter_fastq(input_file, output_file, min_length, max_length):
     if input_file.endswith('.gz'):
@@ -41,5 +51,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_file', dest = 'output_file', help='Path to the output FASTQ file')
     parser.add_argument('--min_length', dest = 'min_length', default = 1400, type=int, help='minimum read length')
     parser.add_argument('--max_length', dest = 'max_length', default = 1700, type=int, help='maximum read length')
+    parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {VERSION}')
     args = parser.parse_args()
     filter_fastq(args.input_file, args.output_file, args.min_length, args.max_length)
