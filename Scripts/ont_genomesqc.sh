@@ -144,6 +144,10 @@ fi
 
 mkdir -p ${OUTPUTDIR}/KRAKEN/
 mkdir -p ${OUTPUTDIR}/ASSEMBLIES/
+mkdir -p ${OUTPUTDIR}/LRGE/
+
+# raw LRGE genome size estimates (before any NCBI correction) with 95% confidence intervals
+echo -e "file\tlrge_estimate\tlrge_ci95_lower\tlrge_ci95_upper" > ${OUTPUTDIR}/lrge_estimates.tsv
 
 # permanent record of the (possibly NCBI-corrected) genome size estimates for use in the summary
 echo -e "file\tlrge_genome_size" > ${OUTPUTDIR}/lrge_gsize.tsv
@@ -159,8 +163,28 @@ do
 
     echo 'Estimating genome size for sample' ${i} 'with LRGE'
 
-    GSIZE=$(lrge ${j})
+    # estimate goes to stdout; the log (incl. the 95% CI) goes to stderr - keep it and echo it
+    GSIZE=$(lrge ${j} 2> ${OUTPUTDIR}/LRGE/${i}_lrge.log)
+    cat ${OUTPUTDIR}/LRGE/${i}_lrge.log >&2
     GSIZE=$(printf '%.0f' "${GSIZE}")            # --genome_size requires an integer
+
+    # record the raw LRGE estimate and its 95% CI (in bp) before any NCBI correction
+    # LRGE only reports the CI in its log, e.g. "(95% CI: 4.21 Mbp - 4.87 Mbp)", rounded to 2 dp
+    CI=$(sed -n 's/.*95% CI: \([0-9.]*\) \([kMG]*bp\) - \([0-9.]*\) \([kMG]*bp\)).*/\1 \2 \3 \4/p' \
+        ${OUTPUTDIR}/LRGE/${i}_lrge.log | head -n 1 | tr ' ' '\t')
+    if [ -n "${CI}" ]
+    then
+        CI=$(echo -e "lo\tlo_unit\thi\thi_unit\n${CI}" | \
+            csvtk mutate2 -t -n lower -w 0 \
+                -e '$lo * ($lo_unit == "Gbp" ? 1000000000 : ($lo_unit == "Mbp" ? 1000000 : ($lo_unit == "kbp" ? 1000 : 1)))' | \
+            csvtk mutate2 -t -n upper -w 0 \
+                -e '$hi * ($hi_unit == "Gbp" ? 1000000000 : ($hi_unit == "Mbp" ? 1000000 : ($hi_unit == "kbp" ? 1000 : 1)))' | \
+            csvtk cut -t -f lower,upper | \
+            csvtk del-header -t)
+    else
+        CI=$'NA\tNA'
+    fi
+    echo -e "${i}\t${GSIZE}\t${CI}" >> ${OUTPUTDIR}/lrge_estimates.tsv
 
     echo 'Starting Kraken2 classification of sample' ${i}
     echo 'Using reads in' ${j}
