@@ -299,7 +299,8 @@ do
         [ -z "${ASSEMBLER}" ] && ASSEMBLER='NA'
         echo -e "${i}\t${ASSEMBLER}" >> ${OUTPUTDIR}/assembler.tsv
 
-        if [ "$ASSEMBLY" == "flye" ]
+        # perform contig overlap trimming if assembly defaulted to flye
+        if [ "$ASSEMBLER" == "flye" ]
         then
 
             autocycler_trim_single.py ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}/TRIMMING/
