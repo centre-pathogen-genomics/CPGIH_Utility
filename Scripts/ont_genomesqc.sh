@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -eu -o pipefail
 
 # VERSION: one repo-wide number, stored in version.txt next to this script.
 # Bump it (MAJOR = breaking change to inputs/outputs, MINOR = new feature, PATCH = bug fix) whenever any script changes
@@ -291,12 +293,23 @@ do
     if [ -f ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ]
     then
 
-        cp ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}_assembly.fasta
         cp ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.gfa ${OUTPUTDIR}/ASSEMBLIES/${i}_assembly.gfa
 
         ASSEMBLER=$(grep 'Final assembly' ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.log | sed 's,.* ,,' | tr '[:upper:]' '[:lower:]')
         [ -z "${ASSEMBLER}" ] && ASSEMBLER='NA'
         echo -e "${i}\t${ASSEMBLER}" >> ${OUTPUTDIR}/assembler.tsv
+
+        if [ "$ASSEMBLY" == "flye" ]
+        then
+
+            autocycler_trim_single.py ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}/TRIMMING/
+            cp ${OUTPUTDIR}/ASSEMBLIES/${i}/TRIMMING/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}_assembly.fasta
+
+        else
+
+            cp ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}_assembly.fasta
+
+        fi
 
         # keep the plasmid summary alongside the assemblies (not merged into summary.tsv)
         if [ -f ${OUTPUTDIR}/ASSEMBLIES/${i}/plassembler_summary.tsv ]
