@@ -281,7 +281,7 @@ do
     echo 'Using reads in' ${j}
 
     # NOTE: the output directory must not already exist - do not create it here
-    autocycler_and_flye.py \
+    $CONDA_PREFIX/share/autocycler/pipelines/Fast_Autocycler_with_Flye_fallback_by_Ryan_Wick/autocycler_and_flye.py \
         --read_type ont_r10 \
         --genome_size ${GSIZE} \
         --threads 8 \
@@ -303,7 +303,7 @@ do
         if [ "$ASSEMBLER" = "flye" ]
         then
 
-            autocycler_trim_single.py ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}/TRIMMING/
+            $CONDA_PREFIX/share/autocycler/pipelines/Single_assembly_trimming_by_Ryan_Wick/autocycler_trim_single.py ${OUTPUTDIR}/ASSEMBLIES/${i}/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}/TRIMMING/
             cp ${OUTPUTDIR}/ASSEMBLIES/${i}/TRIMMING/assembly.fasta ${OUTPUTDIR}/ASSEMBLIES/${i}_assembly.fasta
 
         else
