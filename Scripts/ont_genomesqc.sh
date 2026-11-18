@@ -54,6 +54,27 @@ then
 
 fi
 
+# ensure the Kraken2 database is set (kraken2 is run without --db, so it uses KRAKEN2_DEFAULT_DB)
+if [ -z "${KRAKEN2_DEFAULT_DB:-}" ]
+then
+
+    echo "KRAKEN2_DEFAULT_DB is not set, cannot find the Kraken2 database. Mission Aborted."
+    echo "See the wiki page 'Downloading and installing databases'."
+    exit 1
+
+fi
+
+# ensure the Plassembler database exists
+PLASDB=( "${CONDA_PREFIX}"/plassembler_db/*.msh )
+if [ ! -e "${PLASDB[0]}" ]
+then
+
+    echo "No Plassembler database (.msh) found in ${CONDA_PREFIX}/plassembler_db. Mission Aborted."
+    echo "See the wiki page 'Downloading and installing databases'."
+    exit 1
+
+fi
+
 # ensure output directory doesn't exist
 # if it doesn't, create it
 if [ -d ${OUTPUTDIR} ]
@@ -68,6 +89,16 @@ then
     mkdir -p ${OUTPUTDIR}/
 
 fi
+
+# record the databases used for this run
+{
+    echo -e "database\tversion"
+    echo -e "kraken2\t$(basename "${KRAKEN2_DEFAULT_DB}")"
+    for msh in "${PLASDB[@]}"
+    do
+        echo -e "plassembler\t$(basename "${msh}" .msh)"
+    done
+} > ${OUTPUTDIR}/database_versions.txt
 
 # ensure all specified input fastq files exist
 FASTQERROR='false'
